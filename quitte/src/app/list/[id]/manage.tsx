@@ -6,7 +6,7 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, St
 import QRCode from 'react-native-qrcode-svg';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, Row, Screen, SectionLabel, TopBar } from '../../../components/ui';
-import { computeBalances, directTransfers, settle } from '../../../lib/balances';
+import { computeBalances, listTransfers } from '../../../lib/balances';
 import { sharePdf } from '../../../lib/extras';
 import { money } from '../../../lib/domain';
 import { t } from '../../../lib/i18n';
@@ -119,6 +119,50 @@ export default function Manage() {
     ]);
   };
 
+  const households = (view.list.settings?.households ?? []).filter((h) => h.filter((id) => members.some((m) => m.id === id)).length > 1);
+  const nameIn = (id: string) => view.members.find((m) => m.id === id)?.name ?? '?';
+  const saveHouseholds = (next: string[][], summary?: string) => {
+    enqueue(local.id, { op: 'settings', data: { settings: { households: next }, updatedAt: nowIso() }, summary });
+    syncList(local.id);
+  };
+  const newHousehold = () => {
+    const taken = new Set(households.flat());
+    const free = members.filter((m) => !taken.has(m.id));
+    if (free.length < 2) return Alert.alert(t('householdNoPeople'));
+    Alert.alert(t('householdFirst'), undefined, [
+      ...free.slice(0, 8).map((a) => ({
+        text: a.name,
+        onPress: () =>
+          Alert.alert(t('householdSecond', { name: a.name }), undefined, [
+            ...free
+              .filter((b) => b.id !== a.id)
+              .slice(0, 8)
+              .map((b) => ({
+                text: b.name,
+                onPress: () => {
+                  saveHouseholds([...households, [a.id, b.id]], t('actHousehold', { a: a.name, b: b.name }));
+                  showToast(t('householdMade', { a: a.name, b: b.name }));
+                },
+              })),
+            { text: t('cancel'), style: 'cancel' as const },
+          ]),
+      })),
+      { text: t('cancel'), style: 'cancel' as const },
+    ]);
+  };
+  const manageHouseholds = () => {
+    if (!households.length) return newHousehold();
+    Alert.alert(t('households'), t('householdsBody'), [
+      ...households.map((h) => ({
+        text: t('householdUndo', { names: h.map(nameIn).join(' & ') }),
+        style: 'destructive' as const,
+        onPress: () => saveHouseholds(households.filter((x) => x !== h)),
+      })),
+      { text: t('householdNew'), onPress: newHousehold },
+      { text: t('cancel'), style: 'cancel' as const },
+    ]);
+  };
+
   const toggleDirect = () => {
     const on = !view.list.settings?.directDebts;
     enqueue(local.id, { op: 'settings', data: { settings: { directDebts: on }, updatedAt: nowIso() }, summary: on ? t('actDirectOn') : t('actDirectOff') });
@@ -126,8 +170,7 @@ export default function Manage() {
   };
 
   const pdf = () => {
-    const order = view.members.map((m) => m.id);
-    const transfers = view.list.settings?.directDebts ? directTransfers(view.entries, order) : settle(balances, order);
+    const { transfers } = listTransfers(view.entries, view.members, view.list.settings);
     sharePdf(view, transfers).catch(() => showToast(t('pdfFailed')));
   };
 
@@ -237,6 +280,7 @@ export default function Manage() {
           <Row icon="cash-outline" label={t('currency')} value={cur} />
           <Row icon="bar-chart-outline" label={t('stats')} onPress={() => router.push({ pathname: '/list/[id]/stats', params: { id: local.id } })} />
           <Row icon="time-outline" label={t('history')} onPress={() => router.push({ pathname: '/list/[id]/activity', params: { id: local.id } })} />
+          <Row icon="heart-outline" label={t('households')} value={households.length ? households.map((h) => h.map(nameIn).join(' & ')).join(', ') : t('none')} onPress={manageHouseholds} />
           <Row icon="git-network-outline" label={t('directDebts')} value={view.list.settings?.directDebts ? t('on') : t('off')} onPress={toggleDirect} />
           <Row icon="trash-outline" label={t('trash')} value={view.trash?.length ? String(view.trash.length) : ''} onPress={() => router.push({ pathname: '/list/[id]/trash', params: { id: local.id } })} />
           <Row icon="document-outline" label={t('exportPdf')} onPress={pdf} />

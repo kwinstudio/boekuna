@@ -4,6 +4,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, Switch, Text, TextIn
 import { showToast } from '../components/Toast';
 import { Button } from '../components/ui';
 import { enableBackup, restoreBackup, setMonthlyDigest } from '../lib/extras';
+import { supabase } from '../lib/supabase';
 import { timeLabel } from '../lib/i18n';
 import { Card, Screen, SectionLabel, TopBar } from '../components/ui';
 import { t } from '../lib/i18n';
@@ -17,6 +18,24 @@ export default function Settings() {
   const [iban, setIban] = useState(profile.iban);
   const [payLink, setPayLink] = useState(profile.payLink ?? '');
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [contact, setContact] = useState('');
+  const [sending, setSending] = useState(false);
+  const sendFeedback = async () => {
+    if (!msg.trim()) return;
+    setSending(true);
+    const { error } = await supabase.rpc('quitte_send_feedback', {
+      p_body: msg.trim(),
+      p_contact: contact.trim() || null,
+      p_device: profile.deviceId ?? null,
+      p_version: Constants.expoConfig?.version ?? null,
+    });
+    setSending(false);
+    if (error) return showToast(error.message?.includes('too_many') ? t('feedbackTooMany') : t('feedbackFailed'));
+    setMsg('');
+    setContact('');
+    showToast(t('feedbackSent'));
+  };
   const field = { height: 52, borderRadius: radius.field, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, paddingHorizontal: 16, fontSize: 17, color: th.text } as const;
 
   return (
@@ -115,6 +134,33 @@ export default function Settings() {
               </Card>
             </>
           ) : null}
+
+          <SectionLabel>{t('feedbackTitle')}</SectionLabel>
+          <Card style={{ padding: 16, gap: 10 }}>
+            <Text style={{ fontSize: 15, lineHeight: 21, color: th.sub }}>{t('feedbackBody')}</Text>
+            <TextInput
+              accessibilityLabel={t('feedbackTitle')}
+              value={msg}
+              onChangeText={setMsg}
+              placeholder={t('feedbackPlaceholder')}
+              placeholderTextColor={th.sub}
+              multiline
+              maxLength={2000}
+              style={{ minHeight: 96, borderRadius: radius.field, borderWidth: 1, borderColor: th.border, backgroundColor: th.field, padding: 14, fontSize: 16, color: th.text, textAlignVertical: 'top' }}
+            />
+            <TextInput
+              accessibilityLabel={t('feedbackContact')}
+              value={contact}
+              onChangeText={setContact}
+              placeholder={t('feedbackContact')}
+              placeholderTextColor={th.sub}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              maxLength={120}
+              style={field}
+            />
+            <Button label={t('feedbackSend')} icon="paper-plane-outline" onPress={sendFeedback} disabled={!msg.trim() || sending} />
+          </Card>
 
           <SectionLabel>{t('about')}</SectionLabel>
           <Card style={{ padding: 16, gap: 10 }}>

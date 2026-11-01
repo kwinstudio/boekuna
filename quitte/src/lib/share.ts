@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import { Share } from 'react-native';
 import type { Transfer } from './balances';
-import { money, nameOf } from './domain';
+import { money, nameOf, partyName } from './domain';
 import { t } from './i18n';
 import type { ListState } from './types';
 
@@ -21,8 +21,8 @@ function ibanLine(view: ListState, memberId: string) {
 /** Betaalverzoek / herinnering voor één betaling. */
 export function shareRequest(view: ListState, tr: Transfer) {
   const msg = t('requestMessage', {
-    from: nameOf(view, tr.from),
-    to: nameOf(view, tr.to),
+    from: partyName(view, tr.from),
+    to: partyName(view, tr.to),
     amount: money(tr.amount, view.list.currency),
     list: view.list.name,
   });
@@ -32,7 +32,7 @@ export function shareRequest(view: ListState, tr: Transfer) {
 
 export function shareOverview(view: ListState, transfers: Transfer[]) {
   const lines = transfers.map(
-    (tr) => `• ${nameOf(view, tr.from)} → ${nameOf(view, tr.to)}: ${money(tr.amount, view.list.currency)}`,
+    (tr) => `• ${partyName(view, tr.from)} → ${partyName(view, tr.to)}: ${money(tr.amount, view.list.currency)}`,
   );
   const ibans = [...new Set(transfers.map((tr) => tr.to))].map((id) => ibanLine(view, id)).filter(Boolean);
   const body = transfers.length ? lines.join('\n') : t('everyoneSquare');

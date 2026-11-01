@@ -70,10 +70,12 @@ async function doSync(listId: string): Promise<void> {
         if (!isServerRejection(error)) throw error;
         // Eén bewerking wordt geweigerd: stuur ze los, sla de foute over zodat de rest niet blijft hangen.
         let last: ListState | null = null;
+        const refused: string[] = [];
         for (const op of batch) {
           const r = await supabase.rpc('quitte_apply', { p_token: l.token, p_ops: [stripOp(op)], p_actor: actor, p_device: getState().profile.deviceId ?? null });
           if (r.error && !isServerRejection(r.error)) throw r.error;
           if (!r.error) last = r.data as ListState;
+          else refused.push(op.summary || (op.op === 'entry' ? op.data.title || op.op : op.op));
         }
         const done = new Set(batch.map((o) => o.uid));
         const cur = getState().lists[listId];
@@ -83,6 +85,7 @@ async function doSync(listId: string): Promise<void> {
             base: last ?? cur.base,
             lastSyncAt: Date.now(),
             syncError: 'rejected',
+            rejected: [...(cur.rejected ?? []), ...refused].slice(-5),
           });
         }
       } else {

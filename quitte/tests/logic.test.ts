@@ -166,3 +166,40 @@ test('wie is aan de beurt en voortgang', () => {
   const p = settleProgress([E('transfer', 500, 'K', [{ m: 'S', a: 500 }])], [{ from: 'D', to: 'S', amount: 1500 }]);
   assert.deepEqual(p, { paid: 500, remaining: 1500, total: 2000 });
 });
+
+import { evalAmount, calcInput } from '../src/lib/money';
+import { splitEqual as fairSplit } from '../src/lib/split';
+
+test('restcent rouleert per uitgave', () => {
+  const ids = ['a', 'b', 'c'];
+  const got = new Set<string>();
+  for (let s = 0; s < 3; s++) {
+    const p = fairSplit(100, ids, s);
+    assert.equal(p.reduce((x, y) => x + y.a, 0), 100);
+    got.add(p.find((x) => x.a === 34)!.m);
+  }
+  assert.equal(got.size, 3);
+});
+
+test('rekenmachine', () => {
+  assert.equal(evalAmount('12,50+7,50'), 2000);
+  assert.equal(evalAmount('4×2,25'), 900);
+  assert.equal(evalAmount('10+3×2'), 1600);
+  assert.equal(evalAmount('20−5,5'), 1450);
+  assert.equal(evalAmount('8+'), 800);
+  let s = '';
+  for (const k of ['1', '2', ',', '5', '+', '3', ',', '0', '0', '0']) s = calcInput(s, k);
+  assert.equal(s, '12,5+3,00');
+});
+
+import { listTransfers } from '../src/lib/balances';
+test('stel rekent samen af', () => {
+  const ts = '2026-01-01T00:00:00Z';
+  const members = ['a', 'b', 'c'].map((id) => ({ id, name: id, updatedAt: ts }));
+  // a betaalt 90 voor iedereen: b en c (stel) betalen samen 60 aan a, in één betaling.
+  const entries = [{ id: 'e', kind: 'expense' as const, title: '', amount: 9000, date: '2026-01-01', payers: [{ m: 'a', a: 9000 }], shares: [{ m: 'a', a: 3000 }, { m: 'b', a: 3000 }, { m: 'c', a: 3000 }], splitMode: 'equal' as const, updatedAt: ts }];
+  const r = listTransfers(entries, members, { households: [['b', 'c']] });
+  assert.deepEqual(r.transfers, [{ from: 'b', to: 'a', amount: 6000 }]);
+  const d = listTransfers(entries, members, { households: [['b', 'c']], directDebts: true });
+  assert.deepEqual(d.transfers, [{ from: 'b', to: 'a', amount: 6000 }]);
+});

@@ -11,7 +11,9 @@ import { CATEGORIES, categoryById, guessCategory } from '../../../lib/categories
 import { activeMembers, money, nameOf } from '../../../lib/domain';
 import { dayLabel, isoDay, t } from '../../../lib/i18n';
 import { nowIso, todayIso, uuid } from '../../../lib/ids';
-import { CURRENCIES, centsToInput, keypadInput, parseMoney } from '../../../lib/money';
+import { CURRENCIES, calcInput, centsToInput, evalAmount, isExpression, parseMoney } from '../../../lib/money';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { seedOf } from '../../../lib/split';
 import { duplicateEntry, fetchRate, moveEntry, pickPhoto, uploadPhoto, usePhotoUrls } from '../../../lib/extras';
 import { splitEqual, splitShares, sumParts } from '../../../lib/split';
 import { enqueue, getState, updateLocal, useList } from '../../../lib/store';
@@ -36,7 +38,7 @@ export default function EntryScreen() {
   const th = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string }>();
+  const params = useLocalSearchParams<{ id: string; entryId?: string; kind?: Kind; payer?: string; round?: string }>();
   const { local, view } = useList(params.id);
   const existing = view?.entries.find((e) => e.id === params.entryId);
   const me = local?.me ?? null;
@@ -47,7 +49,9 @@ export default function EntryScreen() {
   const [entryId] = useState(existing?.id ?? uuid());
 
   const [kind] = useState<Kind>(existing?.kind ?? params.kind ?? 'expense');
-  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.origAmount ?? existing.amount) : '');
+  const isRound = !existing && params.round === '1';
+  const lastRound = isRound ? view?.entries.find((e) => e.kind === 'expense' && e.category === 'drinks' && e.title === t('roundTitle')) : undefined;
+  const [amountStr, setAmountStr] = useState(existing ? centsToInput(existing.origAmount ?? existing.amount) : lastRound ? centsToInput(lastRound.amount) : '');
   const [fx, setFx] = useState<string | null>(existing?.origCurrency ?? null);
   const [rate, setRate] = useState<number | null>(existing?.rate ?? null);
   const [rateStr, setRateStr] = useState(existing?.rate ? String(existing.rate).replace('.', ',') : '');
@@ -58,9 +62,10 @@ export default function EntryScreen() {
   const [uploading, setUploading] = useState(false);
   const [comment, setComment] = useState('');
   const [viewer, setViewer] = useState<string | null>(null);
-  const [title, setTitle] = useState(existing?.title ?? '');
-  const [category, setCategory] = useState<string | null>(existing?.category ?? null);
-  const [catManual, setCatManual] = useState(!!existing?.category);
+  const [openedAt] = useState(existing?.updatedAt ?? null);
+  const [title, setTitle] = useState(existing?.title ?? (isRound ? t('roundTitle') : ''));
+  const [category, setCategory] = useState<string | null>(existing?.category ?? (isRound ? 'drinks' : null));
+  const [catManual, setCatManual] = useState(!!existing?.category || isRound);
   const [date, setDate] = useState(existing?.date ?? todayIso());
   const remembered = local?.lastPayer && order.includes(local.lastPayer) ? local.lastPayer : null;
   const firstPayer = existing?.payers[0]?.m ?? (params.payer && order.includes(params.payer) ? params.payer : null) ?? remembered ?? me ?? order[0];
@@ -83,11 +88,53 @@ export default function EntryScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [error, setError] = useState('');
 
-  const typed = parseMoney(amountStr) ?? 0;
+  const typed = Math.max(0, evalAmount(amountStr) ?? 0);
+  const seed = seedOf(entryId);
   const listCur = view?.list.currency ?? 'EUR';
   const foreign = !!fx && fx !== listCur;
   const amount = foreign ? (rate ? Math.round(typed * rate) : 0) : typed;
   const photoUrls = usePhotoUrls(local?.token, photos);
+
+  // Concept bewaren: wie even naar een andere app gaat, verliest zijn invoer niet.
+  const draftKey = `quitte:draft:${params.id}`;
+  const isNew = !existing && !params.entryId;
+  const [draftReady, setDraftReady] = useState(!isNew);
+  useEffect(() => {
+    if (!isNew || params.payer || params.kind || params.round) {
+      setDraftReady(true);
+      return;
+    }
+    AsyncStorage.getItem(draftKey)
+      .then((raw) => {
+        if (!raw) return;
+        const d = JSON.parse(raw);
+        if (!d || Date.now() - d.at > 24 * 3600_000) return;
+        if (d.amountStr) setAmountStr(d.amountStr);
+        if (d.title) setTitle(d.title);
+        if (d.note) setNote(d.note);
+        if (d.payer && order.includes(d.payer)) setPayer(d.payer);
+        showToast(t('draftRestored'), t('erase'), () => {
+          setAmountStr('');
+          setTitle('');
+          setNote('');
+          AsyncStorage.removeItem(draftKey).catch(() => {});
+        });
+      })
+      .catch(() => {})
+      .finally(() => setDraftReady(true));
+  }, []);
+  useEffect(() => {
+    if (!isNew || !draftReady) return;
+    const tm = setTimeout(() => {
+      if (amountStr || title.trim() || note.trim()) {
+        AsyncStorage.setItem(draftKey, JSON.stringify({ at: Date.now(), amountStr, title, note, payer })).catch(() => {});
+      } else AsyncStorage.removeItem(draftKey).catch(() => {});
+    }, 400);
+    return () => clearTimeout(tm);
+  }, [amountStr, title, note, payer, draftReady]);
+  const clearDraft = () => {
+    if (isNew) AsyncStorage.removeItem(draftKey).catch(() => {});
+  };
 
   useEffect(() => {
     if (!foreign || !fx || existing?.origCurrency === fx) return;
@@ -114,8 +161,8 @@ export default function EntryScreen() {
   const shares: Part[] = useMemo(() => {
     if (kind === 'transfer') return [{ m: toId, a: amount }];
     const inc = order.filter((id) => included.includes(id));
-    if (mode === 'equal') return splitEqual(amount, inc);
-    if (mode === 'shares') return splitShares(amount, weights, order);
+    if (mode === 'equal') return splitEqual(amount, inc, seed);
+    if (mode === 'shares') return splitShares(amount, weights, order, seed);
     return order.map((m) => ({ m, a: parseMoney(splitAmounts[m] ?? '') ?? 0 })).filter((p) => p.a > 0);
   }, [kind, toId, amount, mode, included, weights, splitAmounts, order.join()]);
 
@@ -127,6 +174,17 @@ export default function EntryScreen() {
   const shareSum = sumParts(shares);
 
   const save = () => {
+    // Iemand anders paste deze uitgave aan terwijl jij aan het bewerken was: niet stil overschrijven.
+    if (existing && openedAt && existing.updatedAt !== openedAt && existing.updatedBy && existing.updatedBy !== me) {
+      return Alert.alert(t('conflictTitle', { name: nameOf(view!, existing.updatedBy) }), t('conflictBody'), [
+        { text: t('conflictTheirs'), style: 'cancel', onPress: () => router.back() },
+        { text: t('conflictMine'), onPress: doSave },
+      ]);
+    }
+    doSave();
+  };
+
+  const doSave = () => {
     if (foreign && !rate) return setError(t('errRate'));
     if (amount <= 0) return setError(t('errAmount'));
     if (uploading) return;
@@ -166,6 +224,7 @@ export default function EntryScreen() {
       summary: t(existing ? 'actEdited' : 'actAdded', { title: label, amount: money(amount, cur) }),
     });
     if (!multiPay && kind === 'expense') updateLocal(local.id, { lastPayer: payer });
+    clearDraft();
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.back();
@@ -319,6 +378,10 @@ export default function EntryScreen() {
     <View style={{ flex: 1, backgroundColor: th.bg, paddingTop: insets.top + 6, paddingBottom: Math.max(insets.bottom, 16) }}>
       <TopBar
         backLabel={t('cancel')}
+        onBack={() => {
+          clearDraft();
+          router.back();
+        }}
         title={heading}
         right={existing ? <IconBtn icon="ellipsis-horizontal-circle-outline" label={t('more')} onPress={moreMenu} color={th.accent} /> : null}
       />
@@ -328,8 +391,11 @@ export default function EntryScreen() {
           accessibilityLabel={t('amountA11y', { amount: money(foreign ? typed : amount, fx ?? cur) })}
           style={{ textAlign: 'center', fontSize: compact ? 44 : 52, fontWeight: '700', letterSpacing: -1.5, color: amount ? th.text : th.sub, paddingVertical: compact ? 6 : 12 }}
         >
-          {money(typed, foreign ? fx! : cur).replace(/[\d.,]+/, amountStr ? amountStr : '0')}
+          {isExpression(amountStr) ? money(typed, foreign ? fx! : cur) : money(typed, foreign ? fx! : cur).replace(/[\d.,]+/, amountStr ? amountStr : '0')}
         </Text>
+        {isExpression(amountStr) ? (
+          <Text style={{ textAlign: 'center', fontSize: 15, color: th.sub, marginTop: -6, marginBottom: 6 }}>{amountStr}</Text>
+        ) : null}
         {foreign ? (
           <Text style={{ textAlign: 'center', fontSize: 14, color: th.sub, marginTop: -6, marginBottom: 8 }}>
             {rateBusy ? t('fetchingRate') : rate ? t('convertedTo', { amount: money(amount, cur) }) : t('errRate')}
@@ -401,7 +467,9 @@ export default function EntryScreen() {
         <Keypad
           compact={compact}
           onKey={(k) => {
-            setAmountStr((s) => keypadInput(s, k));
+            if (k === '=') {
+              setAmountStr((s) => (isExpression(s) ? centsToInput(Math.max(0, evalAmount(s) ?? 0)) : s));
+            } else setAmountStr((s) => calcInput(s, k));
             setError('');
           }}
         />

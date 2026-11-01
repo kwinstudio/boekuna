@@ -2,13 +2,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, Alert, Platform, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { ActionSheetIOS, Alert, Linking, Platform, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { showToast } from '../../../components/Toast';
 import { Avatar, Button, Card, CategoryIcon, IconButton, Screen, Segmented, TopBar } from '../../../components/ui';
-import { computeBreakdown, directTransfers, nextPayer, settle, settleProgress, totalSpent, type Transfer } from '../../../lib/balances';
+import { computeBreakdown, listTransfers, nextPayer, settleProgress, totalSpent, type Transfer } from '../../../lib/balances';
 import { shareReminder, type Tone } from '../../../lib/extras';
 import { categoryById } from '../../../lib/categories';
-import { activeMembers, money, myShare, nameOf, payerLine } from '../../../lib/domain';
+import { activeMembers, money, myShare, nameOf, partyName, payerLine } from '../../../lib/domain';
 import { dayLabel, numberLocale, t } from '../../../lib/i18n';
 import { nowIso, todayIso, uuid } from '../../../lib/ids';
 import { shareInvite, shareOverview } from '../../../lib/share';
@@ -54,16 +55,30 @@ export default function ListScreen() {
     const bd = computeBreakdown(view.entries, view.members);
     const balances = Object.fromEntries(Object.entries(bd).map(([k, v]) => [k, v.balance]));
     const order = view.members.map((m) => m.id);
-    const transfers = view.list.settings?.directDebts ? directTransfers(view.entries, order) : settle(balances, order);
+    const { transfers, rep } = listTransfers(view.entries, view.members, view.list.settings);
     const active = view.members.filter((m) => !m.deleted).map((m) => m.id);
     return {
       bd,
       balances,
       transfers,
+      rep,
       total: totalSpent(view.entries),
       next: view.entries.length >= 2 ? nextPayer(balances, active) : null,
       progress: settleProgress(view.entries, transfers),
     };
+  }, [view]);
+
+  // Rondjes-teller: wie gaf hoeveel rondjes, en wie is aan de beurt.
+  const rounds = useMemo(() => {
+    if (!view) return null;
+    const rt = t('roundTitle');
+    const list = view.entries.filter((e) => e.kind === 'expense' && e.category === 'drinks' && e.title === rt);
+    if (!list.length) return null;
+    const active = view.members.filter((m) => !m.deleted).map((m) => m.id);
+    const count: Record<string, number> = Object.fromEntries(active.map((id) => [id, 0]));
+    for (const e of list) for (const p of e.payers) if (p.m in count) count[p.m] += 1;
+    const next = [...active].sort((a, b) => count[a] - count[b] || active.indexOf(a) - active.indexOf(b))[0];
+    return { count, next };
   }, [view]);
 
   if (!local || !view || !calc) {
@@ -80,7 +95,8 @@ export default function ListScreen() {
   const me = local.me;
   const cur = view.list.currency;
   const myBal = me ? (calc.balances[me] ?? 0) : 0;
-  const myOut = calc.transfers.filter((x) => x.from === me);
+  const meUnit = me ? (calc.rep.get(me) ?? me) : null;
+  const myOut = calc.transfers.filter((x) => x.from === meUnit);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -93,7 +109,7 @@ export default function ListScreen() {
     const part = () =>
       Alert.prompt(
         t('paidPartTitle'),
-        t('paidPartBody', { from: nameOf(view, tr.from), to: nameOf(view, tr.to), amount: money(tr.amount, cur) }),
+        t('paidPartBody', { from: partyName(view, tr.from), to: partyName(view, tr.to), amount: money(tr.amount, cur) }),
         (v) => {
           const c = parseMoney(v ?? '');
           if (!c || c <= 0 || c > tr.amount) return Alert.alert(t('errPart'));
@@ -140,7 +156,7 @@ export default function ListScreen() {
     enqueue(local.id, {
       op: 'entry',
       data: entry,
-      summary: t('actPaid', { from: nameOf(view, tr.from), to: nameOf(view, tr.to), amount: money(tr.amount, cur) }),
+      summary: t('actPaid', { from: partyName(view, tr.from), to: partyName(view, tr.to), amount: money(tr.amount, cur) }),
     });
     syncList(local.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -192,6 +208,7 @@ export default function ListScreen() {
 
   const addOther = () => {
     Alert.alert(t('addWhat'), undefined, [
+      { text: t('kindRound'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, round: '1', payer: rounds?.next ?? me ?? undefined } }) },
       { text: t('kindIncome'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, kind: 'income' } }) },
       { text: t('kindTransfer'), onPress: () => router.push({ pathname: '/list/[id]/entry', params: { id: local.id, kind: 'transfer' } }) },
       { text: t('cancel'), style: 'cancel' },
@@ -202,11 +219,14 @@ export default function ListScreen() {
     local.syncError === 'not_found'
       ? t('statusGone')
       : local.syncError === 'rejected'
-        ? t('statusRejected')
+        ? local.rejected?.length
+          ? t('statusRejectedList', { items: local.rejected.join(', ') })
+          : t('statusRejected')
         : local.pending.length > 0 || local.needsCreate || local.syncError === 'offline'
           ? t('statusOffline')
           : null;
 
+  const pendingIds = new Set(local.pending.flatMap((o) => (o.op === 'entry' ? [o.data.id] : [])));
   const names = activeMembers(view).map((m) => (m.id === me ? t('you') : m.name));
 
   return (
@@ -246,7 +266,7 @@ export default function ListScreen() {
             <Text style={{ fontSize: 21, fontWeight: '600', color: myBal === 0 ? th.text : myBal > 0 ? th.gain : th.owe }}>
               {myBal === 0 ? t('youreSquare') : money(Math.abs(myBal), cur)}
               {myBal < 0 && myOut.length === 1 ? (
-                <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}> {t('toName', { name: nameOf(view, myOut[0].to) })}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: th.text }}> {t('toName', { name: partyName(view, myOut[0].to) })}</Text>
               ) : null}
             </Text>
           </View>
@@ -265,7 +285,7 @@ export default function ListScreen() {
           <Pressable
             accessibilityRole="button"
             onPress={() => {
-              updateLocal(local.id, { syncError: null });
+              updateLocal(local.id, { syncError: null, rejected: [] });
               syncList(local.id);
             }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}
@@ -305,11 +325,13 @@ export default function ListScreen() {
           mine={filterMine}
           onMine={setFilterMine}
           next={calc.next}
+          rounds={rounds}
           invited={!!local.invitedAt}
           refreshing={refreshing}
           onRefresh={refresh}
           listId={local.id}
           token={local.token}
+          pendingIds={pendingIds}
         />
       ) : (
         <Balances view={view} me={me} calc={calc} refreshing={refreshing} onRefresh={refresh} onPaid={markPaid} onRemind={remind} />
@@ -344,18 +366,22 @@ function Expenses({
   mine,
   onMine,
   next,
+  rounds,
   invited,
   refreshing,
   onRefresh,
   listId,
   token,
+  pendingIds,
 }: {
+  pendingIds: Set<string>;
   view: ListState;
   me: string | null;
   query: string;
   mine: boolean;
   onMine: (v: boolean) => void;
   next: string | null;
+  rounds: { count: Record<string, number>; next: string } | null;
   invited: boolean;
   refreshing: boolean;
   onRefresh: () => void;
@@ -433,6 +459,24 @@ function Expenses({
               <Ionicons name="chevron-forward" size={16} color={th.sub} />
             </Pressable>
           ) : null}
+          {rounds && !mine && !query ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/list/[id]/entry', params: { id: listId, round: '1', payer: rounds.next } })}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.card, backgroundColor: th.card }}
+            >
+              <Ionicons name="beer-outline" size={20} color={th.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, color: th.text }}>{rounds.next === me ? t('roundNextYou') : t('roundNext', { name: nameOf(view, rounds.next) })}</Text>
+                <Text numberOfLines={1} style={{ fontSize: 12, color: th.sub }}>
+                  {Object.entries(rounds.count)
+                    .map(([id, n]) => `${nameOf(view, id, me)} ${n}`)
+                    .join(' · ')}
+                </Text>
+              </View>
+              <Ionicons name="add-circle-outline" size={22} color={th.accent} />
+            </Pressable>
+          ) : null}
           {me ? (
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {[false, true].map((v) => (
@@ -495,6 +539,12 @@ function Expenses({
                 {e.photos?.length ? ' · 📎' : ''}
                 {(view.comments ?? []).some((c) => c.entryId === e.id) ? ' · 💬' : ''}
               </Text>
+              {pendingIds.has(e.id) ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} accessibilityLabel={t('notSentYet')}>
+                  <Ionicons name="cloud-upload-outline" size={12} color={th.sub} />
+                  <Text style={{ fontSize: 12, color: th.sub }}>{t('notSentYet')}</Text>
+                </View>
+              ) : null}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={{ fontSize: 16, fontWeight: '600', color: e.kind === 'income' ? th.gain : th.text }}>
@@ -521,7 +571,7 @@ function Balances({
 }: {
   view: ListState;
   me: string | null;
-  calc: { bd: ReturnType<typeof computeBreakdown>; balances: Record<string, number>; transfers: Transfer[]; progress: { paid: number; remaining: number; total: number } };
+  calc: { bd: ReturnType<typeof computeBreakdown>; balances: Record<string, number>; transfers: Transfer[]; rep: Map<string, string>; progress: { paid: number; remaining: number; total: number } };
   refreshing: boolean;
   onRefresh: () => void;
   onPaid: (tr: Transfer) => void;
@@ -530,6 +580,35 @@ function Balances({
   const th = useTheme();
   const cur = view.list.currency;
   const [open, setOpen] = useState<string | null>(me);
+  const meUnit = me ? (calc.rep.get(me) ?? me) : null;
+
+  // Gratis betalen: IBAN en bedrag in één tik kopiëren (geen servicekosten zoals bij betalen via een app).
+  const payTarget = (unit: string) => {
+    const ids = [unit, ...[...calc.rep.entries()].filter(([, r]) => r === unit).map(([id]) => id)];
+    return ids.map((id) => view.members.find((x) => x.id === id)).find((x) => x?.iban || x?.payLink) ?? null;
+  };
+  const pay = (tr: Transfer) => {
+    const m = payTarget(tr.to);
+    if (!m) return;
+    const amountText = (tr.amount / 100).toFixed(2).replace('.', ',');
+    const copy = async (v: string, msg: string) => {
+      await Clipboard.setStringAsync(v);
+      showToast(msg);
+    };
+    const opts: { text: string; onPress: () => void }[] = [];
+    if (m.payLink) opts.push({ text: t('openPayLink'), onPress: () => Linking.openURL(m.payLink!).catch(() => {}) });
+    if (m.iban) {
+      opts.push({ text: t('copyIbanAmount'), onPress: () => copy(`${m.iban}\n${m.name}\n${amountText}\n${view.list.name}`, t('copiedAll')) });
+      opts.push({ text: t('copyIban', { iban: m.iban }), onPress: () => copy(m.iban!.replace(/\s/g, ''), t('ibanCopied')) });
+      opts.push({ text: t('copyAmount', { amount: money(tr.amount, cur) }), onPress: () => copy(amountText, t('amountCopied')) });
+    }
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [...opts.map((o) => o.text), t('cancel')], cancelButtonIndex: opts.length, title: t('payTitle', { name: m.name, amount: money(tr.amount, cur) }), message: t('payNoFees') },
+        (i) => opts[i]?.onPress(),
+      );
+    } else Alert.alert(t('payTitle', { name: m.name, amount: money(tr.amount, cur) }), t('payNoFees'), [...opts, { text: t('cancel'), style: 'cancel' }]);
+  };
   const members = view.members.filter((m) => !m.deleted || (calc.balances[m.id] ?? 0) !== 0);
   const max = Math.max(1, ...members.map((m) => Math.abs(calc.balances[m.id] ?? 0)));
   const sorted = [...members].sort((a, b) => (calc.balances[b.id] ?? 0) - (calc.balances[a.id] ?? 0));
@@ -595,9 +674,18 @@ function Balances({
                 </View>
               </View>
               {isOpen ? (
-                <Text style={{ fontSize: 13, lineHeight: 19, color: th.sub, backgroundColor: th.bg, borderRadius: 10, padding: 10, marginTop: 8 }}>
-                  {t('whyPrefix')} {why}
-                </Text>
+                <View style={{ backgroundColor: th.bg, borderRadius: 10, padding: 10, marginTop: 8 }}>
+                  <Text style={{ fontSize: 13, lineHeight: 19, color: th.sub }}>
+                    {t('whyPrefix')} {why}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() => router.push({ pathname: '/list/[id]/person', params: { id: view.list.id, m: m.id } })}
+                    style={{ minHeight: 36, justifyContent: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: th.accent }}>{t('seeAllItems')} →</Text>
+                  </Pressable>
+                </View>
               ) : null}
             </Pressable>
           );
@@ -620,24 +708,34 @@ function Balances({
       ) : (
         <Card style={{ paddingHorizontal: 14 }}>
           {calc.transfers.map((tr, i) => {
-            const mine = tr.from === me;
-            const toMe = tr.to === me;
+            const mine = tr.from === meUnit;
+            const toMe = tr.to === meUnit;
             return (
               <View
                 key={`${tr.from}-${tr.to}`}
                 style={{ minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: i < calc.transfers.length - 1 ? StyleSheet.hairlineWidth : 0, borderBottomColor: th.line }}
               >
-                <Avatar name={nameOf(view, tr.from)} index={view.members.findIndex((m) => m.id === tr.from)} size={30} />
+                <Avatar name={partyName(view, tr.from)} index={view.members.findIndex((m) => m.id === tr.from)} size={30} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={{ fontSize: 15, color: th.text }}>
-                    <Text style={{ fontWeight: '600' }}>{nameOf(view, tr.from, me)}</Text> → {nameOf(view, tr.to, me)}
+                    <Text style={{ fontWeight: '600' }}>{partyName(view, tr.from, me)}</Text> → {partyName(view, tr.to, me)}
                   </Text>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: th.text }}>{money(tr.amount, cur)}</Text>
                 </View>
+                {mine && payTarget(tr.to) ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('payA11y', { name: partyName(view, tr.to), amount: money(tr.amount, cur) })}
+                    onPress={() => pay(tr)}
+                    style={[styles.smallBtn, { borderWidth: 1, borderColor: th.border, backgroundColor: th.card }]}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: th.text }}>{t('pay')}</Text>
+                  </Pressable>
+                ) : null}
                 {!mine ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t('remindA11y', { name: nameOf(view, tr.from) })}
+                    accessibilityLabel={t('remindA11y', { name: partyName(view, tr.from) })}
                     onPress={() => onRemind(tr)}
                     style={[styles.smallBtn, { borderWidth: 1, borderColor: th.border, backgroundColor: th.card }]}
                   >
@@ -646,7 +744,7 @@ function Balances({
                 ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={t('markPaidA11y', { from: nameOf(view, tr.from), to: nameOf(view, tr.to), amount: money(tr.amount, cur) })}
+                  accessibilityLabel={t('markPaidA11y', { from: partyName(view, tr.from), to: partyName(view, tr.to), amount: money(tr.amount, cur) })}
                   onPress={() => onPaid(tr)}
                   style={[styles.smallBtn, { backgroundColor: th.accentSoft }]}
                 >

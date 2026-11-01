@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Platform, Share } from 'react-native';
 import { computeBreakdown, type Transfer } from './balances';
 import { categoryById } from './categories';
-import { money, nameOf } from './domain';
+import { money, nameOf, partyName } from './domain';
 import { dayLabel, t } from './i18n';
 import { nowIso, todayIso, uuid } from './ids';
 import { addJoinedList, enqueue, getState, setProfile } from './store';
@@ -100,8 +100,8 @@ export type Tone = 'friendly' | 'short' | 'funny';
 
 export function reminderText(view: ListState, tr: Transfer, tone: Tone) {
   const vars = {
-    from: nameOf(view, tr.from),
-    to: nameOf(view, tr.to),
+    from: partyName(view, tr.from),
+    to: partyName(view, tr.to),
     amount: money(tr.amount, view.list.currency),
     list: view.list.name,
   };
@@ -140,7 +140,7 @@ export async function sharePdf(view: ListState, transfers: Transfer[]) {
     })
     .join('');
   const tr = transfers.length
-    ? transfers.map((x) => `<li>${esc(nameOf(view, x.from))} → ${esc(nameOf(view, x.to))}: <b>${esc(money(x.amount, cur))}</b></li>`).join('')
+    ? transfers.map((x) => `<li>${esc(partyName(view, x.from))} → ${esc(partyName(view, x.to))}: <b>${esc(money(x.amount, cur))}</b></li>`).join('')
     : `<li>${esc(t('everyoneSquare'))}</li>`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
     body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#1C1C1E;padding:28px;font-size:11px}

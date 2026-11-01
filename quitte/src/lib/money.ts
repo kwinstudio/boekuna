@@ -55,3 +55,52 @@ export function keypadInput(current: string, key: string): string {
 }
 
 export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'DKK', 'SEK', 'NOK', 'PLN', 'CZK', 'CAD', 'AUD', 'THB', 'TRY'];
+
+/** Toetsen van het bedragtoetsenbord, inclusief + − × voor optellen in de app zelf. */
+export const OPERATORS = ['+', '−', '×'] as const;
+
+export function calcInput(current: string, key: string): string {
+  const lastOp = Math.max(...OPERATORS.map((o) => current.lastIndexOf(o)));
+  const head = current.slice(0, lastOp + 1);
+  const tail = current.slice(lastOp + 1);
+  if ((OPERATORS as readonly string[]).includes(key)) {
+    if (!current) return current;
+    if ((OPERATORS as readonly string[]).includes(current.slice(-1))) return current.slice(0, -1) + key;
+    if (current.length > 60) return current;
+    return current + key;
+  }
+  if (key === 'back') return current.slice(0, -1);
+  return head + keypadInput(tail, key);
+}
+
+/** Rekent "12,50+7×2" uit naar centen (× gaat voor + en −). Geeft null bij een onvolledige som. */
+export function evalAmount(expr: string): number | null {
+  if (!expr) return null;
+  const tokens = expr.split(/([+−×])/).filter((x) => x !== '');
+  if (!tokens.length || (OPERATORS as readonly string[]).includes(tokens[tokens.length - 1])) {
+    return tokens.length > 1 ? evalAmount(tokens.slice(0, -1).join('')) : null;
+  }
+  // Eerst vermenigvuldigen (factor is een gewoon getal), dan optellen/aftrekken.
+  const terms: { sign: number; cents: number }[] = [];
+  let sign = 1;
+  for (let i = 0; i < tokens.length; i++) {
+    const tk = tokens[i];
+    if (tk === '+' || tk === '−') {
+      sign = tk === '+' ? 1 : -1;
+      continue;
+    }
+    if (tk === '×') continue;
+    const v = parseMoney(tk);
+    if (v === null) return null;
+    if (tokens[i - 1] === '×' && terms.length) {
+      const prev = terms[terms.length - 1];
+      prev.cents = Math.round((prev.cents * v) / 100);
+    } else terms.push({ sign, cents: v });
+  }
+  const total = terms.reduce((s, x) => s + x.sign * x.cents, 0);
+  return total;
+}
+
+export function isExpression(expr: string) {
+  return /[+−×]/.test(expr.replace(/[+−×]$/, ''));
+}

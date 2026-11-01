@@ -147,3 +147,61 @@ export function settleProgress(entries: Entry[], open: Transfer[]) {
   const remaining = open.reduce((s, t) => s + t.amount, 0);
   return { paid, remaining, total: paid + remaining };
 }
+
+/**
+ * Stellen/huishoudens rekenen samen af: saldi per huishouden opgeteld onder de eerste persoon (vertegenwoordiger).
+ */
+export function householdMap(households: string[][] | undefined, activeIds: string[]): Map<string, string> {
+  const rep = new Map<string, string>();
+  for (const h of households ?? []) {
+    const members = h.filter((id) => activeIds.includes(id));
+    if (members.length < 2) continue;
+    for (const id of members) if (!rep.has(id)) rep.set(id, members[0]);
+  }
+  return rep;
+}
+
+export function foldBalances(balances: Record<string, number>, rep: Map<string, string>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [id, v] of Object.entries(balances)) {
+    const k = rep.get(id) ?? id;
+    out[k] = (out[k] ?? 0) + v;
+  }
+  return out;
+}
+
+/** Betalingen tussen huishoudens samenvoegen en per paar netto verrekenen. */
+export function foldTransfers(transfers: Transfer[], rep: Map<string, string>): Transfer[] {
+  const net = new Map<string, number>();
+  for (const tr of transfers) {
+    const a = rep.get(tr.from) ?? tr.from;
+    const b = rep.get(tr.to) ?? tr.to;
+    if (a === b) continue;
+    net.set(`${a}>${b}`, (net.get(`${a}>${b}`) ?? 0) + tr.amount);
+  }
+  const out: Transfer[] = [];
+  const seen = new Set<string>();
+  for (const k of net.keys()) {
+    const [a, b] = k.split('>');
+    const pair = [a, b].sort().join('|');
+    if (seen.has(pair)) continue;
+    seen.add(pair);
+    const v = (net.get(`${a}>${b}`) ?? 0) - (net.get(`${b}>${a}`) ?? 0);
+    if (v > 0) out.push({ from: a, to: b, amount: v });
+    else if (v < 0) out.push({ from: b, to: a, amount: -v });
+  }
+  return out;
+}
+
+/** Alle betalingen voor een lijst, rekening houdend met instellingen (directe schulden, huishoudens). */
+export function listTransfers(
+  entries: Entry[],
+  members: Member[],
+  settings: { directDebts?: boolean; households?: string[][] } | undefined,
+): { transfers: Transfer[]; rep: Map<string, string>; balances: Record<string, number> } {
+  const balances = computeBalances(entries, members);
+  const order = members.map((m) => m.id);
+  const rep = householdMap(settings?.households, members.filter((m) => !m.deleted).map((m) => m.id));
+  if (settings?.directDebts) return { transfers: foldTransfers(directTransfers(entries, order), rep), rep, balances };
+  return { transfers: settle(foldBalances(balances, rep), order), rep, balances };
+}

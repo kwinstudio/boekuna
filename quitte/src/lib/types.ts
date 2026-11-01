@@ -26,7 +26,7 @@ export type Comment = {
   deleted?: boolean;
 };
 
-export type ListSettings = { directDebts?: boolean; defaultSplit?: string | null };
+export type ListSettings = { directDebts?: boolean; defaultSplit?: string | null; households?: string[][] };
 
 export type Entry = {
   id: string;
@@ -111,6 +111,8 @@ export type LocalList = {
   /** Lokale voorkeuren voor slimme standaarden. */
   lastPayer?: string | null;
   invitedAt?: number | null;
+  /** Wijzigingen die de server weigerde (om te tonen in plaats van stil weg te gooien). */
+  rejected?: string[];
 };
 
 export type SplitKey = { id: string; name: string; weights: Record<string, number> };

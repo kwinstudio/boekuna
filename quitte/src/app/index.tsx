@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Avatar, Button, Card, IconButton, Screen } from '../components/ui';
-import { computeBalances, directTransfers, settle } from '../lib/balances';
+import { listTransfers } from '../lib/balances';
 import { restoreBackup } from '../lib/extras';
 import { showToast } from '../components/Toast';
 import { Platform } from 'react-native';
@@ -24,11 +24,10 @@ export default function Home() {
     return Object.values(lists)
       .map((local) => {
         const v = viewOf(local)!;
-        const balances = computeBalances(v.entries, v.members);
+        const { transfers: trs, rep, balances } = listTransfers(v.entries, v.members, v.list.settings);
         const bal = local.me ? (balances[local.me] ?? 0) : 0;
-        const order = v.members.map((m) => m.id);
-        const trs = v.list.settings?.directDebts ? directTransfers(v.entries, order) : settle(balances, order);
-        const open = local.me ? trs.filter((x) => x.from === local.me || x.to === local.me).length : 0;
+        const unit = local.me ? (rep.get(local.me) ?? local.me) : null;
+        const open = unit ? trs.filter((x) => x.from === unit || x.to === unit).length : 0;
         return {
           local,
           name: v.list.name,

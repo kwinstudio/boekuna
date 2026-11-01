@@ -36,3 +36,11 @@ export function myShare(e: Entry, me?: string | null): number {
 export function activeMembers(view: ListState) {
   return view.members.filter((m) => !m.deleted);
 }
+
+/** Naam van een partij bij het verrekenen: één persoon of een huishouden ("Sanne & Daan"). */
+export function partyName(view: ListState, id: string, me?: string | null): string {
+  const h = (view.list.settings?.households ?? []).find((x) => x[0] === id && x.length > 1);
+  if (!h) return nameOf(view, id, me);
+  const names = h.filter((m) => view.members.some((x) => x.id === m && !x.deleted)).map((m) => nameOf(view, m, me));
+  return names.length > 1 ? names.join(' & ') : nameOf(view, id, me);
+}
