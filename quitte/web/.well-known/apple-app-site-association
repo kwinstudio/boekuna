@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["4PUWX9ZXQL.nl.zichtwerf.quitte"],
+        "components": [{ "/": "/j/*", "comment": "Uitnodigingslinks" }]
+      }
+    ]
+  },
+  "webcredentials": { "apps": ["4PUWX9ZXQL.nl.zichtwerf.quitte"] }
+}

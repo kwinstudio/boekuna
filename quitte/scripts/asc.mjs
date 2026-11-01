@@ -80,7 +80,7 @@ if (mode === 'preflight') {
     ASSOCIATED_DOMAINS: undefined,
   };
   try {
-    const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=50`);
+    const caps = await api(`/v1/bundleIds/${bundle.id}/bundleIdCapabilities`);
     const have = new Set((caps.data || []).map((c) => c.attributes.capabilityType));
     for (const [type, settings] of Object.entries(wanted)) {
       if (have.has(type)) continue;
