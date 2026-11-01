@@ -29,7 +29,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '11' }}
+          TARGET_BUILD: ${{ inputs.target_build || '12' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 11: de app is nu Engels met Nederlands, Spaans, Duits, Frans en Japans (kies bij i > Instellingen > Taal). Slim opruimen heeft Grote video's (verkleinen in laag/midden/hoog), de Reiskaart en Dubbele contacten. Snelle albums: zet tot 3 albums onder de foto (i > Instellingen > Snelle albums). Nieuwe widget voor je beginscherm, en de app werkt nu ook op iPad. Test vooral: taal wisselen, de widget, de reiskaart en dubbele contacten (bekijk eerst het overzicht)."
+          WHAT_TO_TEST: "Nieuw in build 12: een nieuw icoon en een rustiger, strakker ontwerp (geen dikke randen meer). Daarnaast veel verbeteringen onder de motorkap: dubbele contacten worden veiliger samengevoegd (niets is vooraf aangevinkt, en alle gegevens zoals datums en relaties gaan mee), swipen is soepeler, willekeurige volgorde blijft gelijk, de widget wordt na elke sessie bijgewerkt. Test vooral: het nieuwe uiterlijk, swipen, Slim opruimen en de widget."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
