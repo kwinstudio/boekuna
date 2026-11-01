@@ -12,6 +12,10 @@
     {
       "source": "/privacy",
       "destination": "/"
+    },
+    {
+      "source": "/b/:token",
+      "destination": "/"
     }
   ],
   "headers": [

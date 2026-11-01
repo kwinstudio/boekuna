@@ -179,7 +179,9 @@ async function memberPage(token, justJoined = false) {
   if (!d.receiver) {
     render(`<div class="pill">Je doet mee</div><h1>Hoi ${esc(d.me.name)}!</h1>
       <p class="muted">${justJoined ? "Je bent aangemeld. " : ""}De lootjes worden nog getrokken. Bewaar deze pagina (of deze link) — hier verschijnt straks je lootje.</p>
-      ${myWish}${info}${appBanner("m/" + token)}`);
+      ${myWish}
+      ${g.joinOpen ? `<div class="card"><a href="/j/${esc(g.joinCode)}">Ook iemand anders aanmelden, bijvoorbeeld je kind</a></div>` : ""}
+      ${info}${appBanner("m/" + token)}`);
     bar("");
     wireWish(token);
     return;
@@ -275,6 +277,14 @@ function home() {
   bar("");
 }
 
+function adminPage(token) {
+  render(`<h1>Beheerlink</h1>
+    <p class="muted">Met deze link beheer je een lootjesgroep in de Lootjes-app op een tweede telefoon. Je kunt er niet mee zien wie wie heeft.</p>
+    <a class="btn" href="lootjes://b/${esc(token)}">Open in de Lootjes-app</a>
+    <p class="muted center" style="margin-top:12px">Werkt de knop niet? Installeer eerst de app en open deze link opnieuw.</p>`);
+  bar("");
+}
+
 function privacy() {
   render(`<h1>Privacy</h1>
     <p>Lootjes is gemaakt door Zichtwerf Studio. We bewaren zo weinig mogelijk.</p>
@@ -290,6 +300,7 @@ function privacy() {
 const parts = location.pathname.split("/").filter(Boolean);
 if (parts[0] === "j" && parts[1]) joinPage(parts[1].toUpperCase());
 else if (parts[0] === "m" && parts[1]) memberPage(parts[1]);
+else if (parts[0] === "b" && parts[1]) adminPage(parts[1]);
 else if (parts[0] === "privacy") privacy();
 else home();
 </script>
