@@ -222,14 +222,22 @@
       names.forEach(function(n){var o=document.createElement('option');o.value=n;list.appendChild(o)});
       form.appendChild(list);vendor.setAttribute('list','bkVendorList');
     }
-    var touched={};
-    form.addEventListener('change',function(e){if(e.isTrusted&&e.target&&(e.target.name==='category'||e.target.name==='vatRate'))touched[e.target.name]=1});
+    var touched={},applying=false;
+    form.addEventListener('change',function(e){
+      if(!e.target||(e.target.name!=='category'&&e.target.name!=='vatRate')||applying)return;
+      if(e.isTrusted)touched[e.target.name]=1;
+      // "Waarom deze categorie?" (Kwin 2026-11-01): a changed choice is what Boekuna suggests next time for this supplier.
+      var hint=form.querySelector('.bk-hint'),name=vendor.value.trim(),cat=form.elements.category;
+      if(e.target.name==='category'&&hint&&name&&lastExpenseOf(st,name)&&cat&&cat.options[cat.selectedIndex]){
+        hint.dataset.bkFor='';hint.textContent='Onthouden voor '+name+': volgende keer '+cat.options[cat.selectedIndex].text+'.';
+      }
+    });
     function apply(){
       var last=lastExpenseOf(st,vendor.value);if(!last)return;
       var parts=[];
       var cat=form.elements.category;
       if(cat&&!touched.category&&last.category&&cat.querySelector('option[value="'+CSS.escape(String(last.category))+'"]')&&cat.value!==String(last.category)){
-        cat.value=String(last.category);cat.dispatchEvent(new Event('change',{bubbles:true}));
+        cat.value=String(last.category);applying=true;try{cat.dispatchEvent(new Event('change',{bubbles:true}))}finally{applying=false}
         parts.push(cat.options[cat.selectedIndex]?cat.options[cat.selectedIndex].text:'');
       }
       var rate=String(last.vatRate);
@@ -242,7 +250,7 @@
       if(hint&&!parts.length&&hint.dataset.bkFor===String(last.id))return; // already shown for this supplier
       if(!hint){hint=document.createElement('div');hint.className='help bk-hint';vendor.closest('.field').appendChild(hint)}
       hint.dataset.bkFor=String(last.id);
-      hint.textContent=parts.length?'Zoals vorige keer: '+parts.join(', '):'';
+      hint.textContent=parts.length?'Gekozen omdat '+String(last.vendor||vendor.value).trim()+' vorige keer '+parts.join(' en ')+' was. Klopt het niet? Kies iets anders, dan onthoudt Boekuna dat.':'';
       // 27. Same as last time: one tap fills the amount of the previous cost too.
       var gross=form.elements.gross,amount=0;try{amount=app('expenseGross')?app('expenseGross')(last):0}catch(e){}
       if(gross&&amount>0&&!String(gross.value||'').trim()){

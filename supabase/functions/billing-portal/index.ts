@@ -49,7 +49,10 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return json(req,{ok:false,error:"Method not allowed"},405);
  try{
   const {user,admin}=await userAndAdmin(req);
-  const {data:account,error}=await admin.from("billing_accounts").select("stripe_customer_id").eq("user_id",user.id).maybeSingle();
+  // "Opzeggen" in the app (Kwin 2026-11-01): open Stripe straight on the cancel step instead of the portal home.
+  const wanted=await req.json().catch(()=>({}));
+  const cancelFlow=wanted?.flow==="cancel";
+  const {data:account,error}=await admin.from("billing_accounts").select("stripe_customer_id,stripe_subscription_id").eq("user_id",user.id).maybeSingle();
   if(error)throw error;
   if(!account?.stripe_customer_id)return json(req,{ok:false,error:"Er is nog geen Stripe-klant aan dit account gekoppeld."},409);
   const p=new URLSearchParams();
@@ -59,6 +62,17 @@ Deno.serve(async(req:Request)=>{
   // configuration (scripts/stripe-pricing-v2-setup.mjs). Without it Stripe's default applies.
   const portalConfiguration=(Deno.env.get("STRIPE_PORTAL_CONFIGURATION_ID")||"").trim();
   if(/^bpc_[A-Za-z0-9]+$/.test(portalConfiguration))p.set("configuration",portalConfiguration);
+  const subscription=String(account.stripe_subscription_id||"");
+  if(cancelFlow&&/^sub_[A-Za-z0-9]+$/.test(subscription)){
+    const flow=new URLSearchParams(p);
+    flow.set("flow_data[type]","subscription_cancel");
+    flow.set("flow_data[subscription_cancel][subscription]",subscription);
+    flow.set("flow_data[after_completion][type]","redirect");
+    flow.set("flow_data[after_completion][redirect][return_url]",APP_URL+"/?login=1&billing=portal-return");
+    // If the portal configuration does not allow cancelling there, fall back to the portal home.
+    try{const direct=await stripePost("/billing_portal/sessions",flow);return json(req,{ok:true,url:direct.url,flow:"cancel"})}
+    catch(e){console.warn("billing-portal cancel flow",String((e as Error)?.message||e))}
+  }
   const session=await stripePost("/billing_portal/sessions",p);
   return json(req,{ok:true,url:session.url});
  }catch(e){

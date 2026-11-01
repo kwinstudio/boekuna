@@ -66,7 +66,7 @@ try{
       await page.getByRole('button',{name:'Feedback versturen'}).click();
       await page.locator('.fb-done').waitFor();
       assert.match(await sheetText(page),/Bedankt voor je feedback\./);
-      assert.match(await sheetText(page),/We bekijken je melding\./);
+      assert.match(await sheetText(page),/antwoord van een mens/);
       const row=await page.evaluate(()=>__fb.rows.at(-1));
       assert.equal(row.category,category);
       assert.equal(row.screenshot_path,null,'no screenshot unless the user adds one');
@@ -120,11 +120,11 @@ try{
     const list=await page.locator('.fb-report').allInnerTexts();
     assert.equal(list.length,5);
     assert.match(list[0],/Het totaal op mijn overzicht klopt niet\.[\s\S]*Ontvangen/);
-    await page.evaluate(()=>{const r=__fb.rows[0];r.customer_status='resolved';r.customer_reply='Dit is opgelost in de nieuwste versie.';r.status_changed_at=new Date().toISOString();const r2=__fb.rows[1];r2.customer_status='reviewing';const r3=__fb.rows[2];r3.customer_status='in_progress'});
+    await page.evaluate(()=>{const r=__fb.rows[0];r.customer_status='resolved';r.customer_reply='Dit is opgelost in de nieuwste versie.';r.status_changed_at=new Date().toISOString();const r2=__fb.rows[1];r2.customer_status='reviewing';const r3=__fb.rows[2];r3.customer_status='in_progress';const r4=__fb.rows[3];r4.customer_status='reviewing';r4.customer_reply='Goede vraag, ik kijk ernaar.'});
     await page.evaluate(()=>BoekunaFeedback.refreshPanelReports());
     await page.waitForFunction(()=>document.querySelectorAll('.fb-status-resolved').length===1);
     const labels=await page.locator('.fb-report .fb-status').allInnerTexts();
-    assert.deepEqual([...new Set(labels)].sort(),['In behandeling','Ontvangen','Opgelost','Wordt bekeken'].sort(),'only the four customer statuses');
+    assert.deepEqual([...new Set(labels)].sort(),['Beantwoord','Gelezen','In behandeling','Ontvangen','Opgelost'].sort(),'only the customer statuses; a reply shows Beantwoord');
     await page.screenshot({path:shotDir+'/4-mijn-meldingen-desktop-'+browserName+'.png'});
     await page.locator('.fb-report').last().click();
     await page.locator('.fb-detail').waitFor();

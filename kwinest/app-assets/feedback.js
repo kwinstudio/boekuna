@@ -16,7 +16,9 @@
   ];
   // Internal types stay out of the customer UI; ocr_correction is shown as "Iets klopt niet".
   var INTERNAL_TYPES=['bug','incorrect_result','unclear','feature_request','ocr_correction'];
-  var CUSTOMER_STATUS={received:'Ontvangen',reviewing:'Wordt bekeken',in_progress:'In behandeling',resolved:'Opgelost'};
+  var CUSTOMER_STATUS={received:'Ontvangen',reviewing:'Gelezen',in_progress:'In behandeling',answered:'Beantwoord',resolved:'Opgelost'};
+  // No chatbot: a person reads every message (Kwin 2026-11-01, "slechte reviews concurrenten" 4).
+  var HUMAN_PROMISE='Je krijgt antwoord van een mens, meestal binnen 1 werkdag. Geen chatbot.';
   var FIELD_LABELS={invoiceNumber:'Factuurnummer',invoiceDate:'Factuurdatum',supplier:'Leverancier',subtotal:'Bedrag excl. btw',vat:'Btw-bedrag',vatRate:'Btw-percentage',invoiceTotal:'Totaal',currency:'Valuta'};
   // Document review keys → feedback field identity.
   var OCR_FIELDS=[['invoiceNumber','invoiceNumber'],['issueDate','invoiceDate'],['party','supplier'],['net','subtotal'],['vatAmount','vat'],['vatRate','vatRate'],['gross','invoiceTotal'],['currency','currency']];
@@ -238,6 +240,7 @@
   function stepCategoryHtml(){
     return '<div class="fb-step" data-fb-step="category">'
       +'<h2 class="fb-title" id="fbTitle" tabindex="-1">Waar kunnen we mee helpen?</h2>'
+      +'<p class="fb-human">'+esc(HUMAN_PROMISE)+'</p>'
       +'<div class="fb-choices" role="list">'
       +CATEGORIES.map(function(c){return '<div role="listitem"><button type="button" class="fb-choice" data-fb-category="'+c.key+'">'+svg(c.icon)+'<span>'+esc(c.label)+'</span>'+svg('<path d="m9 6 6 6-6 6"/>','fb-chevron')+'</button></div>'}).join('')
       +'</div></div>';
@@ -264,7 +267,7 @@
     return '<div class="fb-step fb-done" data-fb-step="done">'
       +'<div class="fb-done-mark" aria-hidden="true">'+svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>')+'</div>'
       +'<h2 class="fb-title" id="fbTitle" tabindex="-1">Bedankt voor je feedback.</h2>'
-      +'<p class="fb-done-text">We bekijken je melding. Je ziet hem terug onder Mijn meldingen.</p>'
+      +'<p class="fb-done-text">'+esc(HUMAN_PROMISE)+' Je ziet het antwoord terug onder Mijn meldingen.</p>'
       +'<div class="fb-foot"><button type="button" class="btn primary" data-fb-action="done">Klaar</button><button type="button" class="btn" data-fb-action="show-reports">Mijn meldingen</button></div>'
       +'</div>';
   }
@@ -400,12 +403,13 @@
   }
 
   // ---------- Mijn meldingen ----------
+  function shownStatus(r){var st=r&&r.customer_status;return r&&String(r.customer_reply||'').trim()&&st!=='resolved'?'answered':st}
   function statusPill(status){var label=CUSTOMER_STATUS[status]||CUSTOMER_STATUS.received;return '<span class="fb-status fb-status-'+esc(CUSTOMER_STATUS[status]?status:'received')+'">'+esc(label)+'</span>'}
   function categoryLabel(internal){var c=categoryFor(customerCategory(internal));return c?c.label:'Feedback'}
   function reportsListHtml(rows){
     if(!rows.length)return '<p class="fb-empty">Je hebt nog geen meldingen gestuurd.</p>';
     return '<ul class="fb-reports">'+rows.map(function(r){
-      return '<li><button type="button" class="fb-report" data-fb-report="'+esc(r.id)+'"><span class="fb-report-main"><strong>'+esc(r.title||categoryLabel(r.category))+'</strong><span>'+esc(dateLabel(r.created_at))+'</span></span>'+statusPill(r.customer_status)+svg('<path d="m9 6 6 6-6 6"/>','fb-chevron')+'</button></li>';
+      return '<li><button type="button" class="fb-report" data-fb-report="'+esc(r.id)+'"><span class="fb-report-main"><strong>'+esc(r.title||categoryLabel(r.category))+'</strong><span>'+esc(dateLabel(r.created_at))+'</span></span>'+statusPill(shownStatus(r))+svg('<path d="m9 6 6 6-6 6"/>','fb-chevron')+'</button></li>';
     }).join('')+'</ul>';
   }
   var cachedReports=[];
@@ -433,7 +437,7 @@
     sheet=document.createElement('div');sheet.className='fb-backdrop';
     sheet.innerHTML='<div class="fb-sheet" role="dialog" aria-modal="true" aria-labelledby="fbTitle"><div class="fb-head"><span class="fb-grabber" aria-hidden="true"></span><span class="fb-head-title">Melding</span><button type="button" class="fb-close" data-fb-action="close" aria-label="Sluiten">'+svg('<path d="M6 6l12 12M18 6 6 18"/>')+'</button></div><div class="fb-body"><div class="fb-step fb-detail">'
       +'<h2 class="fb-title" id="fbTitle" tabindex="-1">'+esc(r.title||categoryLabel(r.category))+'</h2>'
-      +'<div class="fb-detail-meta">'+statusPill(r.customer_status)+'<span>'+esc(categoryLabel(r.category))+' · '+esc(dateLabel(r.created_at))+'</span></div>'
+      +'<div class="fb-detail-meta">'+statusPill(shownStatus(r))+'<span>'+esc(categoryLabel(r.category))+' · '+esc(dateLabel(r.created_at))+'</span></div>'
       +(r.customer_reply?'<div class="fb-reply"><strong>Reactie van BOEKUNA</strong><p>'+esc(r.customer_reply)+'</p></div>':'')
       +'<div class="fb-detail-block"><strong>Jouw bericht</strong><p class="fb-message-text">'+esc(r.message)+'</p></div>'
       +(r.screenshot_path?'<div class="fb-detail-block"><strong>Screenshot</strong><div class="fb-detail-shot" data-fb-shot-path="'+esc(r.screenshot_path)+'"><span>Screenshot laden…</span></div></div>':'')

@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {chromium,webkit} from 'playwright';
+// The fixtures describe October 2026; the page clock is pinned there so the test does not expire with the calendar.
+const TEST_NOW='2026-10-23T12:00:00';
 
 const root=process.cwd();
 const require=createRequire(import.meta.url);
@@ -200,6 +202,7 @@ try{
     const browser=await browserType.launch({headless:true});
     try{
       const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+      await page.clock.setFixedTime(new Date(TEST_NOW));
       const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));
       await page.goto(base+'/app',{waitUntil:'networkidle'});
       await page.locator('#pageTitle').filter({hasText:'Overzicht'}).waitFor();
