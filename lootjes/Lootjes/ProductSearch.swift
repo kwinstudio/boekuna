@@ -55,7 +55,12 @@ enum WishLine {
 /// otherwise search in Safari and paste the link back.
 struct GiftSearchSection: View {
     let tint: Color
+    var budgetCents: Int? = nil
     let onAdd: (String) -> Void
+
+    private let catalog = GiftCatalog.shared
+    @State private var category: String? = nil
+    @State private var showAll = false
 
     @State private var query = ""
     @State private var results: [ProductResult] = []
@@ -88,6 +93,8 @@ struct GiftSearchSection: View {
                 }
             }
 
+            ideasBlock
+
             if searching { ProgressView().frame(maxWidth: .infinity) }
 
             if !results.isEmpty {
@@ -111,13 +118,16 @@ struct GiftSearchSection: View {
                 Text(message).font(.footnote).foregroundStyle(.secondary)
             }
 
-            if inAppAvailable == false || !query.trimmed.isEmpty && results.isEmpty && !searching && inAppAvailable != nil {
+            if !query.trimmed.isEmpty {
+                Text("Iets specifieks zoeken?").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
-                    SecondaryButton(title: "Zoek bij bol.com", systemImage: "bag", tint: tint) {
-                        safariURL = WishLine.searchURL(query.trimmed.isEmpty ? "cadeau" : query.trimmed, shop: .bol)
+                    SecondaryButton(title: inAppAvailable == true ? "Producten" : "Bij bol.com", systemImage: "bag", tint: tint) {
+                        if inAppAvailable == true { Task { await search() } } else {
+                            safariURL = WishLine.searchURL(query.trimmed, shop: .bol)
+                        }
                     }
                     SecondaryButton(title: "Op internet", systemImage: "globe", tint: tint) {
-                        safariURL = WishLine.searchURL(query.trimmed.isEmpty ? "cadeau" : query.trimmed, shop: .web)
+                        safariURL = WishLine.searchURL(query.trimmed, shop: .web)
                     }
                 }
             }
@@ -141,6 +151,64 @@ struct GiftSearchSection: View {
         .task { await loadStatus() }
     }
 
+    @ViewBuilder
+    private var ideasBlock: some View {
+        let typing = query.trimmed.count >= 2
+        let list: [GiftIdea] = typing
+            ? catalog.search(query, budgetCents: budgetCents)
+            : (category.map { catalog.ideas(in: $0, budgetCents: budgetCents) } ?? catalog.popular(budgetCents: budgetCents))
+        if !typing {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    chip(nil, "Populair", "star")
+                    ForEach(catalog.categories) { c in chip(c.id, c.name, c.symbol) }
+                }
+            }
+        }
+        if typing && list.isEmpty {
+            Text("Geen idee gevonden in onze lijst. Zoek hieronder in een winkel.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+        let shown = showAll || typing ? list : Array(list.prefix(6))
+        VStack(spacing: 0) {
+            ForEach(shown) { idea in
+                IdeaRow(idea: idea, symbol: catalog.category(idea.category)?.symbol ?? "gift", tint: tint,
+                        fits: budgetCents.map { idea.minEuro * 100 <= $0 } ?? true,
+                        added: added.contains("idea:\(idea.id)")) {
+                    onAdd("- \(idea.name)")
+                    added.insert("idea:\(idea.id)")
+                    Haptics.success()
+                } look: {
+                    safariURL = WishLine.searchURL(idea.name, shop: .bol)
+                }
+                Divider()
+            }
+        }
+        .animation(.snappy, value: shown)
+        if !typing && list.count > 6 {
+            Button(showAll ? "Minder tonen" : "Toon alle \(list.count)") { withAnimation(.snappy) { showAll.toggle() } }
+                .font(.subheadline.weight(.semibold))
+                .frame(minHeight: 40)
+        }
+    }
+
+    private func chip(_ id: String?, _ title: String, _ symbol: String) -> some View {
+        let on = category == id
+        return Button {
+            Haptics.tap()
+            withAnimation(.snappy) { category = id; showAll = false }
+        } label: {
+            Label(title, systemImage: symbol)
+                .font(.footnote.weight(.semibold))
+                .padding(.horizontal, 12)
+                .frame(minHeight: 36)
+                .foregroundStyle(on ? .white : .primary)
+                .background(on ? tint : Theme.paper, in: Capsule())
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
     private func loadStatus() async {
         guard inAppAvailable == nil else { return }
         if let s = try? await API().searchStatus() {
@@ -156,10 +224,7 @@ struct GiftSearchSection: View {
         guard q.count >= 2 else { return }
         focused = false
         message = nil
-        if inAppAvailable == false {
-            safariURL = WishLine.searchURL(q, shop: .bol)
-            return
-        }
+        if inAppAvailable != true { return } // the built-in ideas already show while typing
         searching = true
         defer { searching = false }
         do {
@@ -187,6 +252,47 @@ struct GiftSearchSection: View {
         onAdd(title.isEmpty || title.count > 120 ? "- \(url.absoluteString)" : "- \(title)\n  \(url.absoluteString)")
         message = "Link toegevoegd."
         Haptics.success()
+    }
+}
+
+private struct IdeaRow: View {
+    let idea: GiftIdea
+    let symbol: String
+    let tint: Color
+    let fits: Bool
+    let added: Bool
+    let add: () -> Void
+    let look: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.body)
+                .foregroundStyle(tint)
+                .frame(width: 36, height: 36)
+                .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(idea.name).font(.subheadline)
+                Text(idea.priceText + (fits ? "" : " · boven budget"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+            Button(action: look) {
+                Image(systemName: "magnifyingglass").font(.subheadline).foregroundStyle(.secondary)
+                    .frame(width: 40, height: 44)
+            }
+            .accessibilityLabel("Bekijk \(idea.name) in een winkel")
+            Button(action: add) {
+                Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(added ? Color.green : tint)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 44, height: 44)
+            }
+            .disabled(added)
+            .accessibilityLabel(added ? "Toegevoegd" : "Zet \(idea.name) op je lijstje")
+        }
+        .padding(.vertical, 4)
     }
 }
 

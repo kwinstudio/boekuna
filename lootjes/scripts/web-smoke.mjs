@@ -33,10 +33,12 @@ try {
   await page.fill('#wish', 'Een mooie sjaal\nhttps://example.com/sjaal');
   await page.click('#saveWish');
   await page.getByText('Opgeslagen').waitFor();
-  await page.fill('#q', 'puzzel');
-  await page.click('#qgo');
-  await page.locator('#qres .prod, #qres a.btn').first().waitFor();
-  ok(true, 'gift search shows products or shop links');
+  await page.locator('#qres .idea').first().waitFor();
+  ok(await page.locator('#qres .idea').count() >= 6, 'popular gift ideas show without typing');
+  await page.fill('#q', 'sokken');
+  await page.locator('#qres .idea', { hasText: 'Warme sokken' }).waitFor();
+  await page.locator('#qres .idea', { hasText: 'Warme sokken' }).locator('button').click();
+  ok((await page.inputValue('#wish')).includes('- Warme sokken'), 'tapping + puts the idea on the wishlist');
   await page.screenshot({ path: `${OUT}/web-waiting.png` });
 
   await call('draw', { adminToken: g.adminToken });

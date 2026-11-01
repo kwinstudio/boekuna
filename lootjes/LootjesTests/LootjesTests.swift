@@ -214,3 +214,30 @@ final class StoreTests: XCTestCase {
         XCTAssertEqual(store.extraPeople(inGroup: "g").map(\.myName), ["Daan"])
     }
 }
+
+final class GiftCatalogTests: XCTestCase {
+    let c = GiftCatalog.shared
+
+    func testHundredIdeasWithValidCategories() {
+        XCTAssertEqual(c.ideas.count, 100)
+        let ids = Set(c.categories.map(\.id))
+        XCTAssertTrue(c.ideas.allSatisfy { ids.contains($0.category) && $0.minEuro <= $0.maxEuro })
+        XCTAssertEqual(Set(c.ideas.map(\.name)).count, 100, "no duplicate names")
+    }
+
+    func testSearchFindsCommonWishes() {
+        XCTAssertEqual(c.search("sokken").first?.name, "Warme sokken")
+        XCTAssertTrue(c.search("chocola").map(\.name).contains("Chocoladeletter"))
+        XCTAssertTrue(c.search("creme").map(\.name).contains("Handcrème"), "diacritics-insensitive")
+        XCTAssertTrue(c.search("lego").map(\.name).contains("LEGO-set"))
+        XCTAssertTrue(c.search("bier").map(\.name).contains("Speciaalbier proefpakket"))
+        XCTAssertTrue(c.search("x").isEmpty, "single letters are ignored")
+        XCTAssertTrue(c.search("qqqzzz").isEmpty)
+    }
+
+    func testPopularRespectsBudget() {
+        let cheap = c.popular(budgetCents: 1000)
+        XCTAssertFalse(cheap.isEmpty)
+        XCTAssertTrue(cheap.allSatisfy { $0.minEuro <= 10 })
+    }
+}

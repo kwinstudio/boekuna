@@ -73,6 +73,13 @@
   .prev .pt { font-size:15px; font-weight:500; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   .prev .ps { font-size:12px; color:var(--muted); }
   .row2 { display:flex; gap:8px; } .row2 .btn { flex:1; }
+  .chips { display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; scrollbar-width:none; }
+  .chip { flex:none; border:0; border-radius:16px; padding:8px 12px; font:inherit; font-size:14px; font-weight:600; background:var(--paper); color:var(--ink); }
+  .chip.on { background:var(--accent); color:#fff; }
+  .idea { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+  .idea .pt { flex:1; font-size:15px; } .idea .pt small { display:block; color:var(--muted); font-size:12px; }
+  .idea a.look { color:var(--muted); text-decoration:none; padding:8px; }
+  .idea button { width:40px; height:40px; border-radius:20px; border:0; background:var(--accent); color:#fff; font-size:20px; flex:none; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 </style>
 </head>
@@ -259,7 +266,7 @@ async function memberPage(token, justJoined = false) {
       ${info}${appBanner("m/" + token)}`);
     startFestive();
     bar("");
-    wireWish(token);
+    wireWish(token, g.budgetCents);
     return;
   }
 
@@ -311,7 +318,7 @@ async function memberPage(token, justJoined = false) {
     b.onclick = send;
     input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
   });
-  wireWish(token);
+  wireWish(token, g.budgetCents);
   bar("");
 }
 
@@ -332,39 +339,89 @@ async function renderPreviews(host, text) {
     }).catch(() => {});
   }
 }
-function wireSearch() {
+let ideaCatalog = null;
+async function loadIdeas() {
+  if (ideaCatalog) return ideaCatalog;
+  try { ideaCatalog = await (await fetch("/gift-ideas.json")).json(); } catch { ideaCatalog = { categories: [], ideas: [] }; }
+  return ideaCatalog;
+}
+const fold = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function searchIdeas(cat, q, budget) {
+  const words = fold(q).split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+  if (!words.length) return [];
+  const catName = Object.fromEntries(cat.categories.map((c) => [c.id, c.name]));
+  return cat.ideas.map((i) => {
+    const name = fold(i.n), keys = fold((i.k || "") + " " + (catName[i.c] || ""));
+    let score = 0;
+    for (const w of words) {
+      if (name.startsWith(w)) score += 30;
+      else if (name.split(" ").some((x) => x.startsWith(w))) score += 20;
+      else if (name.includes(w)) score += 12;
+      else if (keys.split(" ").some((x) => x.startsWith(w))) score += 8;
+      else if (keys.includes(w)) score += 4;
+      else return null;
+    }
+    if (i.top) score += 3;
+    if (budget != null && i.p[0] * 100 <= budget) score += 2;
+    return [i, score];
+  }).filter(Boolean).sort((a, b) => b[1] - a[1] || a[0].n.localeCompare(b[0].n)).slice(0, 12).map((x) => x[0]);
+}
+async function wireSearch(budget) {
   const q = $("#q"), go = $("#qgo"), out = $("#qres"), ta = $("#wish");
   if (!q) return;
-  const shopLinks = (term) => `<div class="row2" style="margin-top:10px">
-      <a class="btn secondary" target="_blank" rel="noopener" href="https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(term || "cadeau")}">Zoek bij bol.com</a>
-      <a class="btn secondary" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=shop&q=${encodeURIComponent(term || "cadeau")}">Op internet</a></div>
-      <p class="muted" style="margin-top:8px">Gevonden? Kopieer de link en plak hem in je lijstje hieronder.</p>`;
-  const run = async () => {
+  const cat = await loadIdeas();
+  let category = null, showAll = false;
+  const addLine = (line, btn) => {
+    ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
+    if (btn) { btn.textContent = "✓"; btn.disabled = true; btn.style.background = "var(--green)"; }
+    vibrate(15); $("#wishState").textContent = "Toegevoegd. Vergeet niet op Bewaar te tikken.";
+  };
+  const shopLinks = (term) => `<p class="muted" style="margin:10px 0 0;font-size:13px;font-weight:600">Iets specifieks zoeken?</p><div class="row2" style="margin-top:6px">
+      <a class="btn secondary" target="_blank" rel="noopener" href="https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(term)}">Bij bol.com</a>
+      <a class="btn secondary" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=shop&q=${encodeURIComponent(term)}">Op internet</a></div>
+      <p class="muted" style="margin-top:8px;font-size:13px">Gevonden? Kopieer de link en plak hem in je lijstje hieronder.</p>`;
+  const ideaRows = (list) => list.map((i) => `<div class="idea"><div class="pt">${esc(i.n)}<small>€${i.p[0]}–${i.p[1]}${budget != null && i.p[0] * 100 > budget ? " · boven budget" : ""}</small></div>
+      <a class="look" target="_blank" rel="noopener" aria-label="Bekijk in een winkel" href="https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(i.n)}">&#128269;</a>
+      <button data-n="${esc(i.n)}" aria-label="Zet op je lijstje">+</button></div>`).join("");
+  const wire = () => out.querySelectorAll("button[data-n]").forEach((b) => b.onclick = () => addLine("- " + b.dataset.n, b));
+  const render = () => {
+    const term = q.value.trim();
+    if (term.length >= 2) {
+      const list = searchIdeas(cat, term, budget);
+      out.innerHTML = (list.length ? ideaRows(list) : `<p class="muted">Geen idee gevonden in onze lijst.</p>`) + shopLinks(term);
+    } else {
+      let list = category ? cat.ideas.filter((i) => i.c === category) : cat.ideas.filter((i) => i.top);
+      if (budget != null && !category) { const fit = list.filter((i) => i.p[0] * 100 <= budget); if (fit.length) list = fit; }
+      const shown = showAll ? list : list.slice(0, 6);
+      out.innerHTML = `<div class="chips"><button class="chip ${category ? "" : "on"}" data-c="">Populair</button>${cat.categories.map((c) => `<button class="chip ${category === c.id ? "on" : ""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div>` +
+        ideaRows(shown) + (list.length > 6 ? `<p style="margin:8px 0 0"><a href="#" id="more">${showAll ? "Minder tonen" : "Toon alle " + list.length}</a></p>` : "");
+      out.querySelectorAll(".chip").forEach((c) => c.onclick = () => { category = c.dataset.c || null; showAll = false; render(); });
+      const more = $("#more"); if (more) more.onclick = (e) => { e.preventDefault(); showAll = !showAll; render(); };
+    }
+    wire();
+  };
+  const products = async () => {
     const term = q.value.trim(); if (term.length < 2) return;
-    out.innerHTML = `<p class="muted">Zoeken…</p>`;
     try {
       const r = await call("searchProducts", { query: term });
-      if (!r.results.length) { out.innerHTML = `<p class="muted">Niets gevonden.</p>` + shopLinks(term); return; }
-      out.innerHTML = r.results.map((p, i) => `<div class="prod">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" referrerpolicy="no-referrer">` : `<div style="width:52px"></div>`}
+      if (!r.results.length) return;
+      out.insertAdjacentHTML("afterbegin", `<p class="muted" style="font-size:13px;font-weight:600;margin:4px 0">Producten bij bol.com</p>` + r.results.map((p, i) => `<div class="prod">${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" referrerpolicy="no-referrer">` : `<div style="width:52px"></div>`}
         <div class="pt">${esc(p.title)}${p.price != null ? `<div class="pp">${euro(p.price)}</div>` : ""}</div>
-        <button data-i="${i}" aria-label="Voeg toe">+</button></div>`).join("") +
-        (r.partnerLinks ? `<p class="muted" style="font-size:12px;margin-top:8px">Links naar bol.com zijn partnerlinks: de maker van deze app krijgt een kleine vergoeding, jij betaalt niets extra.</p>` : "");
-      out.querySelectorAll("button[data-i]").forEach((b) => b.onclick = () => {
-        const p = r.results[+b.dataset.i];
-        const line = `- ${p.title}${p.price != null ? " (" + euro(p.price) + ")" : ""}\n  ${p.url}`;
-        ta.value = ta.value.trim() ? ta.value.trim() + "\n" + line : line;
-        b.textContent = "✓"; b.disabled = true; b.style.background = "var(--green)"; vibrate(15);
-        $("#wishState").textContent = "Toegevoegd. Vergeet niet op Bewaar te tikken.";
+        <button data-p="${i}" aria-label="Voeg toe">+</button></div>`).join("") +
+        (r.partnerLinks ? `<p class="muted" style="font-size:12px;margin-top:8px">Links naar bol.com zijn partnerlinks: de maker van deze app krijgt een kleine vergoeding, jij betaalt niets extra.</p>` : ""));
+      out.querySelectorAll("button[data-p]").forEach((b) => b.onclick = () => {
+        const p = r.results[+b.dataset.p];
+        addLine(`- ${p.title}${p.price != null ? " (" + euro(p.price) + ")" : ""}\n  ${p.url}`, b);
       });
-    } catch (e) {
-      out.innerHTML = shopLinks(term);
-    }
+    } catch {}
   };
-  go.onclick = run; q.addEventListener("keydown", (e) => e.key === "Enter" && run());
+  q.addEventListener("input", render);
+  go.onclick = products; q.addEventListener("keydown", (e) => e.key === "Enter" && products());
+  render();
 }
 
-function wireWish(token) {
-  wireSearch();
+function wireWish(token, budget) {
+  wireSearch(budget);
   renderPreviews($("#previews"), $("#previews") ? ($(".wish")?.textContent || "") : "");
   const btn = $("#saveWish"), ta = $("#wish"), st = $("#wishState");
   if (!btn) return;

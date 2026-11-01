@@ -383,7 +383,7 @@ struct WishlistEditor: View {
         NavigationStack {
             ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                GiftSearchSection(tint: tint) { line in
+                GiftSearchSection(tint: tint, budgetCents: budget) { line in
                     withAnimation { text = WishLine.append(line, to: text) }
                 }
                 Text(budget.map { "Je lijstje (budget \($0.euroText)). Typ zelf iets of voeg hierboven producten toe." } ?? "Je lijstje. Typ zelf iets of voeg hierboven producten toe.")

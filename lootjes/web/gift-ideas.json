@@ -1,0 +1,988 @@
+{
+ "version": 1,
+ "categories": [
+  {
+   "id": "lekker",
+   "name": "Lekker",
+   "symbol": "fork.knife"
+  },
+  {
+   "id": "verzorging",
+   "name": "Verzorging",
+   "symbol": "drop"
+  },
+  {
+   "id": "thuis",
+   "name": "Thuis & sfeer",
+   "symbol": "house"
+  },
+  {
+   "id": "keuken",
+   "name": "Keuken",
+   "symbol": "frying.pan"
+  },
+  {
+   "id": "lezen",
+   "name": "Boeken & lezen",
+   "symbol": "book"
+  },
+  {
+   "id": "spellen",
+   "name": "Spellen & puzzels",
+   "symbol": "puzzlepiece"
+  },
+  {
+   "id": "kleding",
+   "name": "Kleding & accessoires",
+   "symbol": "tshirt"
+  },
+  {
+   "id": "tech",
+   "name": "Tech & gadgets",
+   "symbol": "headphones"
+  },
+  {
+   "id": "hobby",
+   "name": "Hobby & creatief",
+   "symbol": "paintbrush"
+  },
+  {
+   "id": "sport",
+   "name": "Sport & buiten",
+   "symbol": "figure.run"
+  },
+  {
+   "id": "kids",
+   "name": "Kinderen",
+   "symbol": "teddybear"
+  },
+  {
+   "id": "bonnen",
+   "name": "Bonnen & uitjes",
+   "symbol": "ticket"
+  },
+  {
+   "id": "grappig",
+   "name": "Grappig & klein",
+   "symbol": "face.smiling"
+  }
+ ],
+ "ideas": [
+  {
+   "n": "Chocoladeletter",
+   "c": "lekker",
+   "p": [
+    3,
+    10
+   ],
+   "k": "letter chocola sinterklaas melk puur",
+   "top": true
+  },
+  {
+   "n": "Pepernoten en kruidnoten",
+   "c": "lekker",
+   "p": [
+    3,
+    10
+   ],
+   "k": "kruidnoten snoep sinterklaas strooigoed"
+  },
+  {
+   "n": "Banketstaaf",
+   "c": "lekker",
+   "p": [
+    4,
+    10
+   ],
+   "k": "amandel spijs banket"
+  },
+  {
+   "n": "Speculaas of taai-taai",
+   "c": "lekker",
+   "p": [
+    3,
+    8
+   ],
+   "k": "koek speculaaspop"
+  },
+  {
+   "n": "Luxe chocolade",
+   "c": "lekker",
+   "p": [
+    8,
+    25
+   ],
+   "k": "bonbons truffels chocola tony",
+   "top": true
+  },
+  {
+   "n": "Drankpakket",
+   "c": "lekker",
+   "p": [
+    15,
+    40
+   ],
+   "k": "bier wijn borrel pakket",
+   "top": true
+  },
+  {
+   "n": "Speciaalbier proefpakket",
+   "c": "lekker",
+   "p": [
+    12,
+    30
+   ],
+   "k": "bier ipa tripel proeverij"
+  },
+  {
+   "n": "Fles wijn",
+   "c": "lekker",
+   "p": [
+    8,
+    25
+   ],
+   "k": "rood wit rose"
+  },
+  {
+   "n": "Gin-tonic pakket",
+   "c": "lekker",
+   "p": [
+    20,
+    45
+   ],
+   "k": "gin cocktail"
+  },
+  {
+   "n": "Koffiebonen van een lokale brander",
+   "c": "lekker",
+   "p": [
+    10,
+    20
+   ],
+   "k": "koffie espresso"
+  },
+  {
+   "n": "Theedoos met losse thee",
+   "c": "lekker",
+   "p": [
+    10,
+    25
+   ],
+   "k": "thee kruidenthee"
+  },
+  {
+   "n": "Kaas- of worstpakket",
+   "c": "lekker",
+   "p": [
+    15,
+    35
+   ],
+   "k": "kaas worst borrel tapas"
+  },
+  {
+   "n": "Snoeppot met favoriete snoep",
+   "c": "lekker",
+   "p": [
+    5,
+    15
+   ],
+   "k": "snoep drop zuurtjes"
+  },
+  {
+   "n": "Doucheschuim",
+   "c": "verzorging",
+   "p": [
+    5,
+    12
+   ],
+   "k": "douche gel schuim rituals",
+   "top": true
+  },
+  {
+   "n": "Verzorgingsset",
+   "c": "verzorging",
+   "p": [
+    15,
+    35
+   ],
+   "k": "giftset bad douche bodylotion"
+  },
+  {
+   "n": "Parfum of geurtje",
+   "c": "verzorging",
+   "p": [
+    25,
+    80
+   ],
+   "k": "geur eau de toilette luchtje",
+   "top": true
+  },
+  {
+   "n": "Handcrème",
+   "c": "verzorging",
+   "p": [
+    5,
+    15
+   ],
+   "k": "handen creme winter"
+  },
+  {
+   "n": "Gezichtsmasker set",
+   "c": "verzorging",
+   "p": [
+    8,
+    20
+   ],
+   "k": "skincare masker"
+  },
+  {
+   "n": "Scheerset of baardolie",
+   "c": "verzorging",
+   "p": [
+    12,
+    35
+   ],
+   "k": "baard scheren mannen"
+  },
+  {
+   "n": "Badbruisballen",
+   "c": "verzorging",
+   "p": [
+    6,
+    15
+   ],
+   "k": "bad bruis ontspanning"
+  },
+  {
+   "n": "Lippenbalsem set",
+   "c": "verzorging",
+   "p": [
+    5,
+    12
+   ],
+   "k": "lippen balsem"
+  },
+  {
+   "n": "Geurkaars",
+   "c": "thuis",
+   "p": [
+    8,
+    30
+   ],
+   "k": "kaars geur yankee",
+   "top": true
+  },
+  {
+   "n": "Geurstokjes",
+   "c": "thuis",
+   "p": [
+    10,
+    30
+   ],
+   "k": "huisparfum diffuser geur"
+  },
+  {
+   "n": "Fleece plaid",
+   "c": "thuis",
+   "p": [
+    15,
+    40
+   ],
+   "k": "deken plaid bank warm",
+   "top": true
+  },
+  {
+   "n": "Kamerplant",
+   "c": "thuis",
+   "p": [
+    10,
+    30
+   ],
+   "k": "plant groen pot"
+  },
+  {
+   "n": "Fotolijst",
+   "c": "thuis",
+   "p": [
+    8,
+    25
+   ],
+   "k": "foto lijst"
+  },
+  {
+   "n": "Sfeerverlichting of lichtsnoer",
+   "c": "thuis",
+   "p": [
+    10,
+    30
+   ],
+   "k": "lampjes led licht"
+  },
+  {
+   "n": "Warme sloffen",
+   "c": "thuis",
+   "p": [
+    10,
+    30
+   ],
+   "k": "pantoffels sloffen voeten"
+  },
+  {
+   "n": "Mooie mok",
+   "c": "thuis",
+   "p": [
+    6,
+    15
+   ],
+   "k": "beker mok koffie thee"
+  },
+  {
+   "n": "Kruik met hoes",
+   "c": "thuis",
+   "p": [
+    8,
+    20
+   ],
+   "k": "warmwaterkruik winter"
+  },
+  {
+   "n": "Kookboek",
+   "c": "keuken",
+   "p": [
+    15,
+    35
+   ],
+   "k": "recepten koken boek",
+   "top": true
+  },
+  {
+   "n": "Goed koksmes",
+   "c": "keuken",
+   "p": [
+    20,
+    60
+   ],
+   "k": "mes snijden"
+  },
+  {
+   "n": "Serveerplank",
+   "c": "keuken",
+   "p": [
+    12,
+    30
+   ],
+   "k": "borrelplank snijplank hout"
+  },
+  {
+   "n": "Specerijenset",
+   "c": "keuken",
+   "p": [
+    10,
+    25
+   ],
+   "k": "kruiden specerijen"
+  },
+  {
+   "n": "Ovenschaal",
+   "c": "keuken",
+   "p": [
+    12,
+    35
+   ],
+   "k": "schaal bakken oven"
+  },
+  {
+   "n": "Bakvormen of bakset",
+   "c": "keuken",
+   "p": [
+    10,
+    30
+   ],
+   "k": "bakken taart cupcake"
+  },
+  {
+   "n": "Thermosfles",
+   "c": "keuken",
+   "p": [
+    12,
+    30
+   ],
+   "k": "drinkfles isoleerfles"
+  },
+  {
+   "n": "Keukenschort",
+   "c": "keuken",
+   "p": [
+    10,
+    25
+   ],
+   "k": "schort koken bbq"
+  },
+  {
+   "n": "Smoothieblender",
+   "c": "keuken",
+   "p": [
+    25,
+    50
+   ],
+   "k": "blender smoothie"
+  },
+  {
+   "n": "Gourmetstel of fondueset",
+   "c": "keuken",
+   "p": [
+    25,
+    60
+   ],
+   "k": "gourmet fondue kerst diner raclette"
+  },
+  {
+   "n": "Thriller",
+   "c": "lezen",
+   "p": [
+    12,
+    25
+   ],
+   "k": "boek spannend roman",
+   "top": true
+  },
+  {
+   "n": "Roman",
+   "c": "lezen",
+   "p": [
+    12,
+    25
+   ],
+   "k": "boek verhaal"
+  },
+  {
+   "n": "Biografie",
+   "c": "lezen",
+   "p": [
+    15,
+    30
+   ],
+   "k": "boek levensverhaal"
+  },
+  {
+   "n": "Strip of graphic novel",
+   "c": "lezen",
+   "p": [
+    10,
+    25
+   ],
+   "k": "stripboek manga"
+  },
+  {
+   "n": "Tijdschriftabonnement",
+   "c": "lezen",
+   "p": [
+    15,
+    40
+   ],
+   "k": "magazine blad abonnement"
+  },
+  {
+   "n": "Mooi notitieboek",
+   "c": "lezen",
+   "p": [
+    8,
+    20
+   ],
+   "k": "notebook schrift dagboek"
+  },
+  {
+   "n": "Leeslampje",
+   "c": "lezen",
+   "p": [
+    8,
+    20
+   ],
+   "k": "lamp lezen boek"
+  },
+  {
+   "n": "Puzzel van 1000 stukjes",
+   "c": "spellen",
+   "p": [
+    12,
+    25
+   ],
+   "k": "legpuzzel puzzel",
+   "top": true
+  },
+  {
+   "n": "Bordspel",
+   "c": "spellen",
+   "p": [
+    20,
+    45
+   ],
+   "k": "gezelschapsspel spel catan",
+   "top": true
+  },
+  {
+   "n": "Kaartspel",
+   "c": "spellen",
+   "p": [
+    8,
+    20
+   ],
+   "k": "kaarten spel"
+  },
+  {
+   "n": "Quiz- of partyspel",
+   "c": "spellen",
+   "p": [
+    15,
+    35
+   ],
+   "k": "quiz party spel"
+  },
+  {
+   "n": "Escape room spel voor thuis",
+   "c": "spellen",
+   "p": [
+    15,
+    30
+   ],
+   "k": "escape puzzel spel"
+  },
+  {
+   "n": "Kruiswoord- of sudokuboek",
+   "c": "spellen",
+   "p": [
+    5,
+    12
+   ],
+   "k": "sudoku puzzelboek"
+  },
+  {
+   "n": "Warme sokken",
+   "c": "kleding",
+   "p": [
+    5,
+    15
+   ],
+   "k": "sokken voeten",
+   "top": true
+  },
+  {
+   "n": "Sjaal",
+   "c": "kleding",
+   "p": [
+    12,
+    35
+   ],
+   "k": "das sjaal winter"
+  },
+  {
+   "n": "Handschoenen",
+   "c": "kleding",
+   "p": [
+    10,
+    30
+   ],
+   "k": "handschoenen winter touchscreen"
+  },
+  {
+   "n": "Muts",
+   "c": "kleding",
+   "p": [
+    10,
+    25
+   ],
+   "k": "beanie muts winter"
+  },
+  {
+   "n": "Pyjama",
+   "c": "kleding",
+   "p": [
+    20,
+    40
+   ],
+   "k": "nachtkleding pyjama"
+  },
+  {
+   "n": "Sieraad",
+   "c": "kleding",
+   "p": [
+    15,
+    50
+   ],
+   "k": "ketting armband oorbellen ring",
+   "top": true
+  },
+  {
+   "n": "Portemonnee",
+   "c": "kleding",
+   "p": [
+    15,
+    40
+   ],
+   "k": "portemonnee pasjeshouder"
+  },
+  {
+   "n": "Paraplu",
+   "c": "kleding",
+   "p": [
+    10,
+    30
+   ],
+   "k": "regen paraplu stormparaplu"
+  },
+  {
+   "n": "Draadloze oordopjes",
+   "c": "tech",
+   "p": [
+    25,
+    80
+   ],
+   "k": "oortjes earbuds bluetooth koptelefoon"
+  },
+  {
+   "n": "Bluetooth-speaker",
+   "c": "tech",
+   "p": [
+    20,
+    60
+   ],
+   "k": "speaker muziek"
+  },
+  {
+   "n": "Powerbank",
+   "c": "tech",
+   "p": [
+    15,
+    35
+   ],
+   "k": "oplader batterij"
+  },
+  {
+   "n": "Telefoonhoesje",
+   "c": "tech",
+   "p": [
+    10,
+    25
+   ],
+   "k": "hoesje case telefoon"
+  },
+  {
+   "n": "Slimme lamp",
+   "c": "tech",
+   "p": [
+    15,
+    40
+   ],
+   "k": "smart lamp hue"
+  },
+  {
+   "n": "Draadloze oplader",
+   "c": "tech",
+   "p": [
+    15,
+    35
+   ],
+   "k": "laadpad oplader"
+  },
+  {
+   "n": "Gereedschapsset",
+   "c": "hobby",
+   "p": [
+    20,
+    50
+   ],
+   "k": "gereedschap klussen tool",
+   "top": true
+  },
+  {
+   "n": "Schildersetje",
+   "c": "hobby",
+   "p": [
+    12,
+    30
+   ],
+   "k": "verf schilderen canvas"
+  },
+  {
+   "n": "Diamond painting",
+   "c": "hobby",
+   "p": [
+    10,
+    25
+   ],
+   "k": "diamond painting hobby"
+  },
+  {
+   "n": "Haak- of breipakket",
+   "c": "hobby",
+   "p": [
+    15,
+    35
+   ],
+   "k": "haken breien wol"
+  },
+  {
+   "n": "Tuingereedschap",
+   "c": "hobby",
+   "p": [
+    15,
+    35
+   ],
+   "k": "tuin schep snoeischaar"
+  },
+  {
+   "n": "Zaden- of kweekpakket",
+   "c": "hobby",
+   "p": [
+    8,
+    20
+   ],
+   "k": "kweken kruiden moestuin"
+  },
+  {
+   "n": "Fotoboek maken (bon)",
+   "c": "hobby",
+   "p": [
+    20,
+    40
+   ],
+   "k": "fotoboek foto's"
+  },
+  {
+   "n": "Bouwpakket voor volwassenen",
+   "c": "hobby",
+   "p": [
+    25,
+    60
+   ],
+   "k": "lego bouwen bouwset"
+  },
+  {
+   "n": "Sportbidon",
+   "c": "sport",
+   "p": [
+    8,
+    20
+   ],
+   "k": "drinkfles sport"
+  },
+  {
+   "n": "Yogamat",
+   "c": "sport",
+   "p": [
+    15,
+    35
+   ],
+   "k": "yoga mat fitness"
+  },
+  {
+   "n": "Fietslampjes",
+   "c": "sport",
+   "p": [
+    10,
+    25
+   ],
+   "k": "fiets lamp verlichting"
+  },
+  {
+   "n": "Hardloophandschoenen of -muts",
+   "c": "sport",
+   "p": [
+    10,
+    25
+   ],
+   "k": "hardlopen running"
+  },
+  {
+   "n": "Weerstandsbanden",
+   "c": "sport",
+   "p": [
+    10,
+    25
+   ],
+   "k": "fitness elastiek"
+  },
+  {
+   "n": "Wandelgids van de regio",
+   "c": "sport",
+   "p": [
+    10,
+    20
+   ],
+   "k": "wandelen route boek"
+  },
+  {
+   "n": "LEGO-set",
+   "c": "kids",
+   "p": [
+    10,
+    50
+   ],
+   "k": "lego duplo bouwen",
+   "top": true
+  },
+  {
+   "n": "Pop of knuffel",
+   "c": "kids",
+   "p": [
+    10,
+    30
+   ],
+   "k": "pop knuffel"
+  },
+  {
+   "n": "Prentenboek of voorleesboek",
+   "c": "kids",
+   "p": [
+    10,
+    20
+   ],
+   "k": "kinderboek voorlezen"
+  },
+  {
+   "n": "Knutselset",
+   "c": "kids",
+   "p": [
+    10,
+    25
+   ],
+   "k": "knutselen kids"
+  },
+  {
+   "n": "Speelgoedauto of racebaan",
+   "c": "kids",
+   "p": [
+    10,
+    40
+   ],
+   "k": "auto racebaan"
+  },
+  {
+   "n": "Kinderspel",
+   "c": "kids",
+   "p": [
+    12,
+    30
+   ],
+   "k": "spel kinderen gezelschapsspel"
+  },
+  {
+   "n": "Verzamelplaatjes of -kaarten",
+   "c": "kids",
+   "p": [
+    5,
+    20
+   ],
+   "k": "pokemon kaarten verzamelen"
+  },
+  {
+   "n": "Cadeaubon",
+   "c": "bonnen",
+   "p": [
+    10,
+    50
+   ],
+   "k": "bon tegoed giftcard",
+   "top": true
+  },
+  {
+   "n": "Bioscoopbon",
+   "c": "bonnen",
+   "p": [
+    12,
+    30
+   ],
+   "k": "film bioscoop pathe"
+  },
+  {
+   "n": "Boekenbon",
+   "c": "bonnen",
+   "p": [
+    10,
+    30
+   ],
+   "k": "boek bon"
+  },
+  {
+   "n": "Etentje of restaurantbon",
+   "c": "bonnen",
+   "p": [
+    25,
+    60
+   ],
+   "k": "uit eten restaurant diner"
+  },
+  {
+   "n": "Uitje of workshop",
+   "c": "bonnen",
+   "p": [
+    25,
+    60
+   ],
+   "k": "workshop ervaring uitje"
+  },
+  {
+   "n": "Museumkaart",
+   "c": "bonnen",
+   "p": [
+    60,
+    75
+   ],
+   "k": "museum kaart"
+  },
+  {
+   "n": "Streamingtegoed",
+   "c": "bonnen",
+   "p": [
+    10,
+    30
+   ],
+   "k": "netflix spotify tegoed"
+  },
+  {
+   "n": "Mok met grappige tekst",
+   "c": "grappig",
+   "p": [
+    6,
+    15
+   ],
+   "k": "mok grap"
+  },
+  {
+   "n": "Gekke sokken",
+   "c": "grappig",
+   "p": [
+    5,
+    12
+   ],
+   "k": "sokken grappig"
+  },
+  {
+   "n": "Mini-dobbelspelcadeautje",
+   "c": "grappig",
+   "p": [
+    2,
+    6
+   ],
+   "k": "dobbelspel klein cadeautje"
+  },
+  {
+   "n": "Stressbal of fidget",
+   "c": "grappig",
+   "p": [
+    3,
+    10
+   ],
+   "k": "stress fidget"
+  },
+  {
+   "n": "Gepersonaliseerde sleutelhanger",
+   "c": "grappig",
+   "p": [
+    5,
+    15
+   ],
+   "k": "sleutelhanger naam"
+  }
+ ]
+}
