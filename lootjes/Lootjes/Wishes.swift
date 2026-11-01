@@ -51,6 +51,7 @@ struct MyWishlistView: View {
     let budget: Int?
     let tint: Color
     @Binding var items: [WishItem]
+    var giverWord = "Sint"
 
     @Environment(\.dismiss) private var dismiss
     @State private var editing: WishDraft?
@@ -59,6 +60,7 @@ struct MyWishlistView: View {
     @State private var showIdeas = false
     @State private var toast: ToastData?
     @State private var busy = false
+    @State private var lastError: String?
     private let api = API()
 
     var body: some View {
@@ -106,15 +108,16 @@ struct MyWishlistView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Klaar") { dismiss() } }
             }
             .sheet(item: $editing) { draft in
-                WishItemEditor(draft: draft, isNew: editingId == nil, tint: tint) { d in
-                    await save(d)
+                WishItemEditor(draft: draft, isNew: editingId == nil, tint: tint, giverWord: giverWord) { d in
+                    if await save(d) { return nil }
+                    return lastError ?? "Niet opgeslagen. Probeer het opnieuw."
                 }
             }
             .sheet(isPresented: $showIdeas) {
                 NavigationStack {
                     ScrollView {
                         GiftSearchSection(tint: tint, budgetCents: budget) { d in
-                            Task { await save(d, id: nil) }
+                            await save(d, id: nil, quiet: true)
                         }
                         .padding(16)
                     }
@@ -125,16 +128,20 @@ struct MyWishlistView: View {
                 }
             }
             .fullScreenCover(isPresented: $showShops) {
-                ShopBrowserView(tint: tint) { d in await save(d, id: nil) }
+                ShopBrowserView(tint: tint) { d in
+                    await save(d, id: nil, quiet: true) ? nil : (lastError ?? "Niet opgeslagen. Probeer het opnieuw.")
+                }
             }
             .toast($toast)
             .overlay { if busy { ProgressView() } }
         }
     }
 
-    private func save(_ d: WishDraft) async { await save(d, id: editingId) }
+    private func save(_ d: WishDraft) async -> Bool { await save(d, id: editingId) }
 
-    private func save(_ d: WishDraft, id: String?) async {
+    /// Saves a wish. Returns false on failure; the caller shows the error where the user is looking.
+    @discardableResult
+    private func save(_ d: WishDraft, id: String?, quiet: Bool = false) async -> Bool {
         do {
             if let id {
                 let updated = try await api.wishUpdate(token, id: id, d)
@@ -142,11 +149,13 @@ struct MyWishlistView: View {
             } else {
                 let added = try await api.wishAdd(token, d)
                 withAnimation { items.append(added) }
-                toast = ToastData(message: "\(added.title) staat op je lijstje")
+                if !quiet { toast = ToastData(message: "\(added.title) staat op je lijstje") }
             }
             Haptics.success()
+            return true
         } catch {
-            toast = ToastData(message: error.localizedDescription)
+            lastError = error.localizedDescription
+            return false
         }
     }
 
@@ -213,10 +222,14 @@ struct WishItemEditor: View {
     @State var draft: WishDraft
     let isNew: Bool
     let tint: Color
-    let save: (WishDraft) async -> Void
+    var giverWord = "Sint"
+    /// Returns nil when saved, otherwise the error to show.
+    let save: (WishDraft) async -> String?
     @Environment(\.dismiss) private var dismiss
     @State private var priceText = ""
     @State private var busy = false
+    @State private var error: String?
+    @State private var initial: WishDraft?
 
     var body: some View {
         NavigationStack {
@@ -230,6 +243,9 @@ struct WishItemEditor: View {
                         }
                     }
                 }
+                if let error {
+                    Section { Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.warning) }
+                }
                 Section("Wat wil je graag?") {
                     TextField("Bijv. warme sokken", text: $draft.title, axis: .vertical)
                         .lineLimit(1...3)
@@ -240,7 +256,7 @@ struct WishItemEditor: View {
                     TextField("Maat, kleur of andere tip (mag leeg)", text: Binding(get: { draft.note ?? "" }, set: { draft.note = $0.isEmpty ? nil : $0 }), axis: .vertical)
                         .lineLimit(1...3)
                 } footer: {
-                    Text("Een tip helpt je Sint: bijv. maat 42, liever blauw, geen drop.")
+                    Text("Een tip helpt je \(giverWord): bijv. maat 42, liever blauw, geen drop.")
                 }
             }
             .navigationTitle(isNew ? "Nieuwe wens" : "Wens aanpassen")
@@ -254,19 +270,21 @@ struct WishItemEditor: View {
                             var d = draft
                             d.title = d.title.trimmed
                             d.priceCents = PriceParser.cents(priceText)
-                            await save(d)
+                            error = await save(d)
                             busy = false
-                            dismiss()
+                            if error == nil { dismiss() } else { Haptics.warning() }
                         }
                     }
                     .disabled(draft.title.trimmed.isEmpty || busy)
                 }
             }
             .onAppear {
+                if initial == nil { initial = draft }
                 if let p = draft.priceCents { priceText = String(format: "%.2f", Double(p) / 100).replacingOccurrences(of: ".", with: ",") }
             }
         }
         .presentationDetents([.medium, .large])
+        .interactiveDismissDisabled(initial.map { $0 != draft } ?? false)
     }
 }
 
@@ -468,7 +486,8 @@ enum ProductPageScript {
 
 struct ShopBrowserView: View {
     let tint: Color
-    let add: (WishDraft) async -> Void
+    /// Returns nil when saved, otherwise the error message.
+    let add: (WishDraft) async -> String?
     @Environment(\.dismiss) private var dismiss
     @State private var shop: Shop?
     @StateObject private var web = WebState()
@@ -498,6 +517,18 @@ struct ShopBrowserView: View {
                         .ignoresSafeArea(edges: .bottom)
                         .overlay(alignment: .top) {
                             if web.loading { ProgressView(value: web.progress).tint(tint) }
+                        }
+                        .overlay {
+                            if let failed = web.failed {
+                                ContentUnavailableView {
+                                    Label("Pagina laadt niet", systemImage: "wifi.exclamationmark")
+                                } description: {
+                                    Text(failed)
+                                } actions: {
+                                    Button("Opnieuw") { web.retry() }.buttonStyle(.borderedProminent).tint(tint)
+                                }
+                                .background(Theme.paper)
+                            }
                         }
                         .safeAreaInset(edge: .bottom) {
                             VStack(spacing: 8) {
@@ -534,8 +565,9 @@ struct ShopBrowserView: View {
             }
             .sheet(item: $draft) { d in
                 WishItemEditor(draft: d, isNew: true, tint: tint) { saved in
-                    await add(saved)
-                    toast = ToastData(message: "Op je lijstje gezet")
+                    let err = await add(saved)
+                    if err == nil { toast = ToastData(message: "Op je lijstje gezet") }
+                    return err
                 }
             }
             .toast($toast)
@@ -667,6 +699,8 @@ final class WebState: NSObject, ObservableObject, WKNavigationDelegate {
     @Published var progress = 0.0
     @Published var reading = false
     @Published var canGoBack = false
+    @Published var failed: String?
+    private var lastURL: URL?
     private var obs: [NSKeyValueObservation] = []
 
     override init() {
@@ -680,7 +714,26 @@ final class WebState: NSObject, ObservableObject, WKNavigationDelegate {
         obs.append(view.observe(\.isLoading) { [weak self] v, _ in Task { @MainActor in self?.loading = v.isLoading; self?.canGoBack = v.canGoBack } })
     }
 
-    func load(_ s: String) { if let u = URL(string: s) { view.load(URLRequest(url: u)) } }
+    func load(_ s: String) { if let u = URL(string: s) { failed = nil; lastURL = u; view.load(URLRequest(url: u)) } }
+
+    func retry() {
+        failed = nil
+        if view.url != nil { view.reload() } else if let lastURL { view.load(URLRequest(url: lastURL)) }
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { fail(error) }
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { fail(error) }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { failed = nil }
+
+    private func fail(_ error: Error) {
+        let ns = error as NSError
+        // Cancelled loads (we cancel links to other sites ourselves) are not failures.
+        if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled { return }
+        if ns.domain == "WebKitErrorDomain" && ns.code == 102 { return }
+        failed = ns.domain == NSURLErrorDomain && [NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut].contains(ns.code)
+            ? "Geen internet. Controleer je verbinding."
+            : "De winkel reageert niet. Probeer het zo opnieuw."
+    }
 
     /// Pages of other sites (not one of the listed shops) open in Safari instead of in the app.
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
@@ -740,7 +793,7 @@ struct ReceiverWishlist: View {
                         if let u = item.url.flatMap(URL.init(string:)) {
                             Button { openURL(u) } label: {
                                 Label("Bekijk", systemImage: "arrow.up.right").font(.footnote.weight(.semibold))
-                                    .padding(.horizontal, 12).frame(minHeight: 36)
+                                    .padding(.horizontal, 12).frame(minHeight: 44)
                                     .background(Theme.paper, in: Capsule())
                             }
                             .buttonStyle(.plain)
@@ -751,12 +804,13 @@ struct ReceiverWishlist: View {
                         } label: {
                             Label(onList ? "Op je boodschappenlijst" : "Ik koop dit", systemImage: onList ? "checkmark" : "cart.badge.plus")
                                 .font(.footnote.weight(.semibold))
-                                .padding(.horizontal, 12).frame(minHeight: 36)
-                                .foregroundStyle(onList ? Color.green : .white)
-                                .background(onList ? Color.green.opacity(0.12) : tint, in: Capsule())
+                                .padding(.horizontal, 12).frame(minHeight: 44)
+                                .foregroundStyle(onList ? Theme.green : .white)
+                                .background(onList ? Theme.green.opacity(0.12) : tint, in: Capsule())
                         }
                         .buttonStyle(.plain)
-                        .disabled(onList)
+                        .allowsHitTesting(!onList)
+                        .accessibilityLabel(onList ? "\(item.title) staat op je boodschappenlijst" : "Ik koop \(item.title)")
                     }
                 }
                 .padding(.vertical, 4)
@@ -778,13 +832,17 @@ struct ShoppingListCard: View {
     let budget: Int?
     let tint: Color
     @Binding var items: [ShopItem]
+    var occasion: Occasion = .sinterklaas
     var onChange: () -> Void = {}
 
+    @State private var error: String?
     @State private var newTitle = ""
     @State private var newPrice = ""
     @FocusState private var focus: Bool
     private let api = API()
-    private let quick = ["Inpakpapier", "Chocoladeletter", "Surprise-materiaal", "Kaartje"]
+    private var quick: [String] {
+        occasion == .sinterklaas ? ["Inpakpapier", "Chocoladeletter", "Surprise-materiaal", "Kaartje"] : ["Inpakpapier", "Kaartje", "Strik", "Iets lekkers"]
+    }
 
     private var total: Int { items.compactMap(\.priceCents).reduce(0, +) }
     private var done: Int { items.filter(\.bought).count }
@@ -792,7 +850,7 @@ struct ShoppingListCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Mijn boodschappen").font(.headline)
+                Text("Mijn boodschappenlijst").font(.headline)
                 Spacer()
                 if !items.isEmpty {
                     Text("\(done) van \(items.count)").font(.subheadline).foregroundStyle(.secondary)
@@ -803,10 +861,10 @@ struct ShoppingListCard: View {
             if let budget {
                 VStack(alignment: .leading, spacing: 4) {
                     ProgressView(value: Double(min(total, budget)), total: Double(max(budget, 1)))
-                        .tint(total > budget ? .orange : tint)
+                        .tint(total > budget ? Theme.warning : tint)
                     Text("\(total.euroText) van \(budget.euroText)" + (total > budget ? " · boven budget" : ""))
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(total > budget ? .orange : .secondary)
+                        .foregroundStyle(total > budget ? Theme.warning : .secondary)
                         .contentTransition(.numericText())
                 }
             }
@@ -815,7 +873,7 @@ struct ShoppingListCard: View {
                     Button { toggle(item) } label: {
                         Image(systemName: item.bought ? "checkmark.circle.fill" : "circle")
                             .font(.title2)
-                            .foregroundStyle(item.bought ? Color.green : Color.secondary)
+                            .foregroundStyle(item.bought ? Theme.green : Color.secondary)
                             .contentTransition(.symbolEffect(.replace))
                             .frame(width: 44, height: 44)
                     }
@@ -826,7 +884,7 @@ struct ShoppingListCard: View {
                     Spacer()
                     if let p = item.priceCents { Text(p.euroText).font(.subheadline).foregroundStyle(.secondary) }
                     Button { remove(item) } label: {
-                        Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.tertiary).frame(width: 32, height: 44)
+                        Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(.secondary).frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Verwijder \(item.title)")
                 }
@@ -852,31 +910,44 @@ struct ShoppingListCard: View {
                     ForEach(quick.filter { q in !items.contains { $0.title == q } }, id: \.self) { q in
                         Button { add(q) } label: {
                             Label(q, systemImage: "plus").font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10).frame(minHeight: 32)
+                                .padding(.horizontal, 12).frame(minHeight: 44)
                                 .background(Theme.paper, in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(Theme.warning)
+            }
             if !items.isEmpty && done == items.count {
                 Label("Alles gekocht. Je cadeau staat op klaar.", systemImage: "gift.fill")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(.green)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.green)
             }
         }
         .card()
     }
 
+    private static let notSaved = "Niet opgeslagen. Controleer je internet en probeer het opnieuw."
+
     private func add(_ title: String) {
         let t = title.trimmed
         guard !t.isEmpty else { return }
         let price = PriceParser.cents(newPrice)
+        let typed = (newTitle, newPrice)
         newTitle = ""; newPrice = ""
         Task {
-            if let item = try? await api.shopAdd(token, title: t, priceCents: price, wishItemId: nil) {
+            do {
+                let item = try await api.shopAdd(token, title: t, priceCents: price, wishItemId: nil)
                 withAnimation { items.append(item) }
+                error = nil
                 Haptics.tap()
                 onChange()
+            } catch {
+                // Give the typed text back so nothing is lost.
+                if newTitle.isEmpty, typed.0.trimmed == t { newTitle = typed.0; newPrice = typed.1 }
+                self.error = Self.notSaved
+                Haptics.warning()
             }
         }
     }
@@ -887,16 +958,29 @@ struct ShoppingListCard: View {
         if items[i].bought { Haptics.success() } else { Haptics.tap() }
         let bought = items[i].bought
         Task {
-            _ = try? await api.shopUpdate(token, id: item.id, bought: bought)
-            onChange()
+            do {
+                _ = try await api.shopUpdate(token, id: item.id, bought: bought)
+                error = nil
+                onChange()
+            } catch {
+                if let j = items.firstIndex(where: { $0.id == item.id }) { withAnimation { items[j].bought = !bought } }
+                self.error = Self.notSaved
+            }
         }
     }
 
     private func remove(_ item: ShopItem) {
+        let before = items
         withAnimation { items.removeAll { $0.id == item.id } }
         Task {
-            try? await api.shopDelete(token, id: item.id)
-            onChange()
+            do {
+                try await api.shopDelete(token, id: item.id)
+                error = nil
+                onChange()
+            } catch {
+                withAnimation { items = before }
+                self.error = Self.notSaved
+            }
         }
     }
 }

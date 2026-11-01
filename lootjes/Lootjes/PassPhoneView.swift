@@ -6,6 +6,8 @@ import UIKit
 struct PassPhoneView: View {
     let names: [String]
     var tint: Color = Theme.red
+    /// The draw's own season (Sinterklaas or Kerst), not today's.
+    var season: Season = Season.current()
     @Binding var seen: Set<String>
     /// Returns the receiver's name for this person.
     let resolve: (String) async throws -> String
@@ -63,7 +65,7 @@ struct PassPhoneView: View {
                                 InitialsBadge(name: n, size: 36, tint: done ? .gray : tint)
                                 Text(n).font(.body.weight(.semibold)).lineLimit(1)
                                 Spacer(minLength: 0)
-                                if done { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
+                                if done { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.green) }
                             }
                             .padding(12)
                             .frame(minHeight: 60)
@@ -85,6 +87,7 @@ struct PassPhoneView: View {
                 }
             }
             .padding(20)
+            .readableWidth()
         }
         .overlay { if loading { ProgressView().controlSize(.large) } }
         .confirmationDialog(confirmName.map { "Ben jij \($0)?" } ?? "", isPresented: Binding(get: { confirmName != nil }, set: { if !$0 { confirmName = nil } }), titleVisibility: .visible) {
@@ -117,7 +120,7 @@ struct PassPhoneView: View {
         VStack(spacing: 24) {
             Text(person)
                 .font(.title2.weight(.bold))
-            EnvelopeReveal(receiverName: receiver, caption: "\(person), jij koopt een cadeau voor", season: Season.current()) {
+            EnvelopeReveal(receiverName: receiver, caption: "\(person), jij koopt een cadeau voor", season: season) {
                 seen.insert(person)
             }
             Text("Onthoud de naam goed. Daarna verberg je hem weer.")
@@ -127,6 +130,7 @@ struct PassPhoneView: View {
             Spacer()
         }
         .padding(20)
+        .readableWidth()
         .bottomBar {
             PrimaryButton(title: "Verberg en geef door", systemImage: "eye.slash.fill", tint: tint) {
                 withAnimation {

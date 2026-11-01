@@ -34,6 +34,7 @@
   .scratch { position:relative; height:260px; border-radius:28px; overflow:hidden; background:var(--card); box-shadow:0 10px 30px color-mix(in srgb, var(--accent) 25%, transparent); touch-action:none; user-select:none; -webkit-user-select:none; }
   .scratch .under { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:16px; }
   .scratch canvas { position:absolute; inset:0; width:100%; height:100%; transition:opacity .45s; }
+  .linkbtn { background:none; border:0; padding:6px 0; min-height:32px; color:var(--muted, #6b6b70); font:inherit; font-size:13px; text-decoration:underline; cursor:pointer; }
   .bubble { max-width:80%; padding:10px 14px; border-radius:16px; margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
   .me { margin-left:auto; background:var(--accent); color:#fff; }
   .them { background:var(--paper); }
@@ -285,15 +286,16 @@ async function memberPage(token, justJoined = false) {
   const revealed = localStorage.getItem(revealKey) === "1";
   const threads = (t) => d.messages.filter((m) => m.thread === t);
   const chat = (t, title, sub, ph) => `<div class="card"><h2>${title}</h2><p class="muted">${sub}</p>
-      <div id="msgs_${t}">${threads(t).map((m) => `<div class="bubble ${m.fromMe ? "me" : "them"}">${esc(m.body)}</div>`).join("") || `<p class="muted">Nog geen berichten.</p>`}</div>
-      <div class="row" style="margin-top:8px"><input id="in_${t}" maxlength="500" placeholder="${ph}"><button class="btn send" data-thread="${t}" aria-label="Verstuur">↑</button></div></div>`;
+      <div id="msgs_${t}">${threads(t).map((m) => `<div class="bubble ${m.fromMe ? "me" : "them"}">${esc(m.body)}</div>${m.fromMe ? "" : `<button class="linkbtn" data-report="${esc(m.id)}">Meld dit bericht</button>`}`).join("") || `<p class="muted">Nog geen berichten.</p>`}</div>
+      <div class="row" style="margin-top:8px"><input id="in_${t}" maxlength="500" placeholder="${ph}"><button class="btn send" data-thread="${t}" aria-label="Verstuur">↑</button></div>
+      <p style="margin:8px 0 0"><button class="linkbtn" data-block="${t}" data-on="${d.blocked?.[t] ? "1" : ""}">${d.blocked?.[t] ? "Deblokkeer berichten" : "Blokkeer berichten"}</button></p></div>`;
 
   render(`
     ${warnOpened && !d.me.isOrganizer && !revealed ? `<p class="warn">Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.</p>` : ""}
     ${festHeader(g)}
     <div id="lootje"></div>
     <div class="card"><h2>Verlanglijstje van ${esc(r.name)}</h2><div id="theirwish"></div></div>
-    <div class="card"><h2>Mijn boodschappen</h2><p class="muted" style="font-size:13px">Alleen jij ziet dit lijstje.</p><div id="shop"></div></div>
+    <div class="card"><h2>Mijn boodschappenlijst</h2><p class="muted" style="font-size:13px">Alleen jij ziet dit lijstje.</p><div id="shop"></div></div>
     ${chat("myLootje", `Vraag ${esc(r.name)} iets`, `${esc(r.name)} ziet niet dat jij het vraagt.`, "Bijv. welke kleur vind je mooi?")}
     ${chat("mySint", `Je ${o.giver}`, `Vragen van je ${o.giver}. Je kunt gewoon antwoorden.`, "Antwoord")}
     ${myWish}${info}${appBanner("m/" + token)}`);
@@ -312,6 +314,22 @@ async function memberPage(token, justJoined = false) {
   if (revealed) showResult();
   else scratchCard(lootje, r.name, () => { localStorage.setItem(revealKey, "1"); setTimeout(showResult, 2400); }, seasonOf(g.occasion));
 
+  document.querySelectorAll("[data-report]").forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm("Dit bericht melden? Zichtwerf Studio bekijkt het. De afzender hoort niet dat jij het meldde.")) return;
+      try { await call("reportMessage", { token, messageId: b.dataset.report }); b.textContent = "Gemeld, bedankt"; b.disabled = true; } catch (e) { alert(e.message); }
+    };
+  });
+  document.querySelectorAll("[data-block]").forEach((b) => {
+    b.onclick = async () => {
+      const on = !b.dataset.on;
+      if (on && !confirm("Geen berichten meer ontvangen in dit gesprek? Je kunt dit later ongedaan maken.")) return;
+      try {
+        await call("setBlocked", { token, thread: b.dataset.block, blocked: on });
+        b.dataset.on = on ? "1" : ""; b.textContent = on ? "Deblokkeer berichten" : "Blokkeer berichten";
+      } catch (e) { alert(e.message); }
+    };
+  });
   document.querySelectorAll("[data-thread]").forEach((b) => {
     const t = b.dataset.thread, input = $("#in_" + t);
     const send = async () => {
@@ -563,6 +581,7 @@ function privacy() {
     <div class="card"><h2>Wie ziet wat</h2><p>Je Sint ziet je verlanglijstje. Je boodschappenlijstje ziet alleen jij, ook niet degene voor wie je koopt. Niemand ziet wie wie heeft getrokken, ook de organisator niet.</p></div>
     <div class="card"><h2>Wat we niet doen</h2><p>Geen account, geen e-mailadres of telefoonnummer nodig. Geen reclame, geen tracking, geen analysecookies. We verkopen niets door.</p></div>
     <div class="card"><h2>Winkels</h2><p>Als je in de app in een webshop kijkt, bezoek je die winkel zoals in je browser; dan gelden de regels van die winkel. De app bewaart geen cookies van winkels na het sluiten. Om de logo's van winkels te tonen, vraagt de app het icoontje op bij Google; daarbij gaat alleen het adres van de winkel mee.</p></div>
+    <div class="card"><h2>Melden en blokkeren</h2><p>Krijg je een vervelend anoniem bericht? Meld het of blokkeer berichten in dat gesprek. Een gemeld bericht bewaren we zodat wij het kunnen bekijken; de afzender hoort niet wie het meldde.</p></div>
     <div class="card"><h2>Crashmeldingen</h2><p>Als de app vastloopt of crasht, stuurt je iPhone ons een anonieme technische melding van Apple (welk stukje code, welke iOS-versie). Daarin staat geen naam, groep of verlanglijstje. We bewaren deze meldingen maximaal 90 dagen.</p></div>
     <div class="card"><h2>Links</h2><p>Iedere deelnemer heeft een geheime persoonlijke link. Wie die link heeft, kan die pagina zien; stuur hem dus niet door. De organisator kan een nieuwe link maken; de oude werkt dan niet meer. We bewaren alleen een versleutelde vingerafdruk van de link, niet de link zelf.</p></div>
     <div class="card"><h2>Verwijderen</h2><p>De organisator kan de groep op elk moment verwijderen; alles van die groep is dan direct weg. Deelnemers kunnen zichzelf voor de trekking uit de groep halen en hun wensen zelf wissen. Vragen of een verzoek om gegevens te verwijderen? Mail <a href="mailto:k.phetmanee@gmail.com">k.phetmanee@gmail.com</a>.</p></div>

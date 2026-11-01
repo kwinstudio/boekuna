@@ -27,6 +27,9 @@ struct CreateFlowView: View {
 
     @State private var busy = false
     @State private var error: String?
+    /// Group was created but the rules were not (all) saved: tell the user, then continue.
+    @State private var rulesWarning: String?
+    @State private var pendingDone: SavedGroup?
 
     private let titles = ["Feest", "Wie", "Regels"]
 
@@ -58,6 +61,8 @@ struct CreateFlowView: View {
             .bottomBar {
                 if let error {
                     Text(error).font(.footnote).foregroundStyle(.red).multilineTextAlignment(.center)
+                } else if let reason = blockReason {
+                    Text(reason).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 PrimaryButton(title: primaryTitle, systemImage: step == 2 ? "checkmark" : nil,
                               tint: Theme.accent(for: occasion), isLoading: busy, isEnabled: canContinue) {
@@ -69,8 +74,18 @@ struct CreateFlowView: View {
                 }
             }
             .onAppear { if myName.isEmpty { myName = savedMyName } }
+            .alert("Let op", isPresented: Binding(get: { rulesWarning != nil }, set: { if !$0 { rulesWarning = nil } })) {
+                Button("OK") {
+                    if let g = pendingDone {
+                        pendingDone = nil
+                        onDone(g)
+                    }
+                }
+            } message: {
+                Text(rulesWarning ?? "")
+            }
         }
-        .interactiveDismissDisabled(!people.isEmpty)
+        .interactiveDismissDisabled(!people.isEmpty || pendingDone != nil)
     }
 
     private var allNames: [String] {
@@ -82,6 +97,20 @@ struct CreateFlowView: View {
         case 0: "Volgende"
         case 1: "Volgende"
         default: "Groep maken"
+        }
+    }
+
+    /// Why "Volgende" is disabled, shown just above the button.
+    private var blockReason: String? {
+        switch step {
+        case 0:
+            return name.trimmed.isEmpty ? "Vul een naam voor de groep in" : nil
+        case 1:
+            if myName.trimmed.isEmpty { return "Vul je naam in" }
+            if Set(allNames.map { $0.lowercased() }).count != allNames.count { return "Twee mensen hebben dezelfde naam" }
+            return nil
+        default:
+            return nil
         }
     }
 
@@ -114,17 +143,35 @@ struct CreateFlowView: View {
                 organizerName: myName.trimmed, organizerParticipates: participates, members: people
             )
             let saved = store.saveCreated(created)
+            var warning: String?
             if !exclusions.isEmpty {
-                let ids = Dictionary(created.members.map { ($0.name.lowercased(), $0.id) }, uniquingKeysWith: { a, _ in a })
+                let ids = Dictionary(created.members.map { ($0.name.trimmed.lowercased(), $0.id) }, uniquingKeysWith: { a, _ in a })
                 let pairs = exclusions.compactMap { p -> [String]? in
-                    guard let a = ids[p.a.lowercased()], let b = ids[p.b.lowercased()] else { return nil }
+                    guard let a = ids[p.a.trimmed.lowercased()], let b = ids[p.b.trimmed.lowercased()] else { return nil }
                     return [a, b]
                 }
-                _ = try? await api.setExclusions(created.adminToken, pairs)
+                if pairs.isEmpty {
+                    warning = "Groep gemaakt, maar de regels zijn niet opgeslagen. Stel ze opnieuw in via Regels."
+                } else {
+                    do {
+                        _ = try await api.setExclusions(created.adminToken, pairs)
+                        if pairs.count != exclusions.count {
+                            warning = "Groep gemaakt, maar niet alle regels zijn opgeslagen. Controleer ze via Regels."
+                        }
+                    } catch {
+                        warning = "Groep gemaakt, maar de regels zijn niet opgeslagen. Stel ze opnieuw in via Regels."
+                    }
+                }
             }
-            Haptics.success()
             Reminders.schedule(for: saved)
-            onDone(saved)
+            if let warning {
+                Haptics.warning()
+                pendingDone = saved
+                rulesWarning = warning
+            } else {
+                Haptics.success()
+                onDone(saved)
+            }
         } catch {
             Haptics.warning()
             self.error = error.localizedDescription
@@ -210,6 +257,7 @@ struct CreateFlowView: View {
                 .card()
             }
             .padding(20)
+            .readableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
     }
@@ -331,10 +379,21 @@ struct PeopleStep: View {
                         if isDuplicate(person) {
                             Text("Dubbel").font(.caption.weight(.semibold)).foregroundStyle(.red)
                         }
+                        // Visible delete button: swipe-to-delete alone is hard to discover.
+                        Button {
+                            Haptics.tap()
+                            withAnimation { remove(at: i) }
+                        } label: {
+                            Image(systemName: "minus.circle.fill").font(.title3).foregroundStyle(.secondary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Haal \(person) weg")
                     }
                     .frame(minHeight: 44)
                     .swipeActions {
-                        Button(role: .destructive) { remove(at: i) } label: { Label("Weg", systemImage: "trash") }
+                        Button(role: .destructive) { remove(at: i) } label: { Label("Haal weg", systemImage: "trash") }
                     }
                 }
                 HStack {
@@ -481,6 +540,9 @@ struct ExclusionsStep: View {
                                     .overlay(Capsule().stroke(tint.opacity(isExcluded(n) ? 0.6 : 0), lineWidth: 1.5))
                             }
                             .buttonStyle(PressableStyle())
+                            .accessibilityAddTraits(picked == n ? .isSelected : [])
+                            .accessibilityValue(isExcluded(n) ? "heeft een regel" : "")
+                            .accessibilityHint(hint(for: n))
                         }
                     }
                     if let picked {
@@ -511,12 +573,19 @@ struct ExclusionsStep: View {
                     if let warning = DrawCheck.warning(names: names, exclusions: exclusions) {
                         Label(warning, systemImage: "exclamationmark.triangle.fill")
                             .font(.footnote)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.warning)
                     }
                 }
             }
             .padding(20)
+            .readableWidth()
         }
+    }
+
+    private func hint(for n: String) -> String {
+        guard let p = picked else { return "Tik en kies daarna wie \(n) niet mag trekken." }
+        if p == n { return "Tik nog eens om te annuleren." }
+        return "Tik om vast te leggen dat \(p) en \(n) elkaar niet trekken."
     }
 
     private func isExcluded(_ n: String) -> Bool { exclusions.contains { $0.a == n || $0.b == n } }

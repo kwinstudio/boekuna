@@ -128,6 +128,20 @@ async function exclusions(groupId: string): Promise<Array<[string, string]>> {
   return rows.map((r) => [r.a, r.b]);
 }
 
+type ThreadRow = { giver_id: string; block_to_receiver: boolean; block_to_giver: boolean };
+/// The assignment behind a chat thread, seen from member `meId`.
+async function threadFor(meId: string, groupId: string, thread: unknown): Promise<{ giverId: string; direction: "to_receiver" | "to_giver"; row: ThreadRow }> {
+  const cols = "giver_id,block_to_receiver,block_to_giver";
+  if (thread === "myLootje") {
+    const row = (await must(db.from("lt_assignments").select(cols).eq("group_id", groupId).eq("giver_id", meId).maybeSingle())) as ThreadRow | null;
+    if (!row) throw bad("not_found", "Geen lootje gevonden.", 404);
+    return { giverId: meId, direction: "to_receiver", row };
+  }
+  const row = (await must(db.from("lt_assignments").select(cols).eq("group_id", groupId).eq("receiver_id", meId).maybeSingle())) as ThreadRow | null;
+  if (!row) throw bad("not_found", "Geen Sint gevonden.", 404);
+  return { giverId: row.giver_id, direction: "to_giver", row };
+}
+
 async function newMember(groupId: string, name: string, opts: { organizer?: boolean; self?: boolean } = {}) {
   const token = randomToken();
   const row = await must(
@@ -431,7 +445,8 @@ async function handle(body: Record<string, unknown>, ip: string) {
       const code = String(body.joinCode ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
       const g = (await must(db.from("lt_groups").select(GROUP_COLS).eq("join_code", code).maybeSingle())) as Group | null;
       if (!g) throw bad("not_found", "Deze groep bestaat niet (meer).", 404);
-      if (g.drawn_at || !g.join_open) throw bad("closed", "Aanmelden is gesloten: er is al getrokken.", 409);
+      if (g.drawn_at) throw bad("closed", "Aanmelden is gesloten: er is al getrokken.", 409);
+      if (!g.join_open) throw bad("closed", "De organisator heeft het aanmelden gesloten.", 409);
       if ((await members(g.id)).length >= 60) throw bad("full", "Deze groep is vol.", 409);
       const { member, token } = await newMember(g.id, str(body.name, 40, "Je naam"), { self: true });
       return { token, member: { id: member.id, name: member.name } };
@@ -447,6 +462,7 @@ async function handle(body: Record<string, unknown>, ip: string) {
       let shop: unknown[] = [];
       let giftReady = false;
       let messages: { id: string; thread: "myLootje" | "mySint"; fromMe: boolean; body: string; createdAt: string }[] = [];
+      let blocked = { mySint: false, myLootje: false };
       if (group.drawn_at) {
         const mine = (await must(db.from("lt_assignments").select("receiver_id,gift_ready").eq("group_id", group.id).eq("giver_id", me.id).maybeSingle())) as { receiver_id: string; gift_ready: boolean } | null;
         if (mine) {
@@ -458,7 +474,9 @@ async function handle(body: Record<string, unknown>, ip: string) {
           giftReady = mine.gift_ready;
           shop = await shopItems(ctx, me.id);
         }
-        const sint = (await must(db.from("lt_assignments").select("giver_id").eq("group_id", group.id).eq("receiver_id", me.id).maybeSingle())) as { giver_id: string } | null;
+        const sint = (await must(db.from("lt_assignments").select("giver_id,block_to_receiver").eq("group_id", group.id).eq("receiver_id", me.id).maybeSingle())) as { giver_id: string; block_to_receiver: boolean } | null;
+        const myRow = (await must(db.from("lt_assignments").select("block_to_giver").eq("group_id", group.id).eq("giver_id", me.id).maybeSingle())) as { block_to_giver: boolean } | null;
+        blocked = { mySint: !!sint?.block_to_receiver, myLootje: !!myRow?.block_to_giver };
         const threads = [me.id, sint?.giver_id].filter(Boolean) as string[];
         const rows = (await must(db.from("lt_messages").select("id,giver_id,direction,body,created_at").eq("group_id", group.id).in("giver_id", threads).order("created_at"))) as { id: string; giver_id: string; direction: string; body: string; created_at: string }[];
         messages = rows.map((m) => {
@@ -471,7 +489,7 @@ async function handle(body: Record<string, unknown>, ip: string) {
         group: publicGroup(group),
         me: { id: me.id, name: me.name, wishlist: me.wishlist, isOrganizer: me.is_organizer, openedBefore: me.first_opened_at },
         memberNames: ms.map((m) => m.name),
-        receiver, giftReady, messages,
+        receiver, giftReady, messages, blocked,
         myItems: await wishItems(ctx, me.id), shopItems: shop,
       };
     }
@@ -494,17 +512,39 @@ async function handle(body: Record<string, unknown>, ip: string) {
       if (!group.drawn_at) throw bad("not_drawn", "Er is nog niet getrokken.", 409);
       await rateLimit(`msg:${me.id}`, 40, 3600);
       const text = str(body.body, 500, "Bericht");
-      let giverId: string;
-      let direction: string;
-      if (body.thread === "myLootje") {
-        giverId = me.id; direction = "to_receiver";
-      } else {
-        const sint = (await must(db.from("lt_assignments").select("giver_id").eq("group_id", group.id).eq("receiver_id", me.id).maybeSingle())) as { giver_id: string } | null;
-        if (!sint) throw bad("not_found", "Geen Sint gevonden.", 404);
-        giverId = sint.giver_id; direction = "to_giver";
-      }
-      await must(db.from("lt_messages").insert({ group_id: group.id, giver_id: giverId, direction, body: text }));
+      const t = await threadFor(me.id, group.id, body.thread);
+      // Blocked: the sender gets no hint (so blocking can't be detected and worked around).
+      const blocked = t.direction === "to_receiver" ? t.row.block_to_receiver : t.row.block_to_giver;
+      if (!blocked) await must(db.from("lt_messages").insert({ group_id: group.id, giver_id: t.giverId, direction: t.direction, body: text }));
       return { ok: true };
+    }
+
+    case "reportMessage": {
+      // Report an anonymous message you received; it is kept for review by Zichtwerf Studio.
+      const { me, group } = await memberByToken(body.token);
+      await rateLimit(`report:${me.id}`, 20, 86400);
+      const msg = (await must(db.from("lt_messages").select("id,giver_id,direction,body").eq("id", String(body.messageId)).eq("group_id", group.id).maybeSingle())) as { id: string; giver_id: string; direction: string; body: string } | null;
+      if (!msg) throw bad("not_found", "Bericht niet gevonden.", 404);
+      // Only messages sent TO you can be reported: from the person you drew, or from your Sint.
+      let toMe = msg.giver_id === me.id && msg.direction === "to_giver";
+      if (!toMe && msg.direction === "to_receiver") {
+        const sint = await must(db.from("lt_assignments").select("giver_id").eq("group_id", group.id).eq("receiver_id", me.id).eq("giver_id", msg.giver_id).maybeSingle());
+        toMe = sint !== null;
+      }
+      if (!toMe) throw bad("not_found", "Bericht niet gevonden.", 404);
+      await must(db.from("lt_reports").insert({ group_id: group.id, message_id: msg.id, body: msg.body, reason: optText(body.reason, 300) }));
+      return { ok: true };
+    }
+
+    case "setBlocked": {
+      // Stop receiving messages in one thread (from your Sint, or from the person you drew).
+      const { me, group } = await memberByToken(body.token);
+      if (!group.drawn_at) throw bad("not_drawn", "Er is nog niet getrokken.", 409);
+      const t = await threadFor(me.id, group.id, body.thread);
+      // In "mySint" I am the receiver: block what the giver sends to me (to_receiver). In "myLootje" block to_giver.
+      const col = body.thread === "myLootje" ? "block_to_giver" : "block_to_receiver";
+      await must(db.from("lt_assignments").update({ [col]: body.blocked === true }).eq("group_id", group.id).eq("giver_id", t.giverId));
+      return { ok: true, blocked: body.blocked === true };
     }
 
     case "leave": {

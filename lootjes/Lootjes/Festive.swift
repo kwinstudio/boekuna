@@ -75,9 +75,9 @@ struct FestiveParticles: View {
                     let x = p.x * size.width + sin(t * 0.8 + p.phase) * p.sway
                     let r = CGRect(x: x, y: y, width: p.size, height: p.size)
                     if season == .kerst {
-                        ctx.fill(Path(ellipseIn: r), with: .color(.white.opacity(0.75)))
+                        ctx.fill(Path(ellipseIn: r), with: .color(.white.opacity(0.45)))
                     } else {
-                        ctx.fill(star(in: r), with: .color(Color(red: 1, green: 0.84, blue: 0.45).opacity(0.85)))
+                        ctx.fill(star(in: r), with: .color(Color(red: 1, green: 0.84, blue: 0.45).opacity(0.5)))
                     }
                 }
             }
@@ -111,6 +111,7 @@ struct FestiveHeader: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
+    @ScaledMetric(relativeTo: .largeTitle) private var countSize: CGFloat = 40
 
     private var days: Int? {
         guard let date else { return nil }
@@ -137,13 +138,17 @@ struct FestiveHeader: View {
                 }
             }
             Spacer(minLength: 8)
-            if let days {
+            if let days, days == 0 {
+                Text("Vandaag!")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(.white)
+            } else if let days {
                 VStack(spacing: 0) {
                     Text("\(appeared ? days : 0)")
-                        .font(.system(size: 40, weight: .bold).monospacedDigit())
+                        .font(.system(size: min(countSize, 64), weight: .bold).monospacedDigit())
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: false))
-                    Text(days == 1 ? "dag tot \(eventWord)" : (days == 0 ? "het is vandaag!" : "dagen tot \(eventWord)"))
+                    Text(days == 1 ? "dag tot \(eventWord)" : "dagen tot \(eventWord)")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.white.opacity(0.85))
                         .multilineTextAlignment(.center)
@@ -154,7 +159,7 @@ struct FestiveHeader: View {
                 Image(systemName: season.symbol)
                     .font(.system(size: 34))
                     .foregroundStyle(.white)
-                    .symbolEffect(.bounce, value: appeared)
+                    .symbolEffect(.bounce, options: .nonRepeating, value: festive ? appeared : false)
             }
         }
         .padding(18)

@@ -25,7 +25,7 @@ struct QuickDrawSetupView: View {
                 }
             }
             .background(Theme.paper.ignoresSafeArea())
-            .navigationTitle("Iedereen is hier")
+            .navigationTitle("Samen op één telefoon")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -121,6 +121,7 @@ struct QuickDrawView: View {
     @EnvironmentObject private var store: Store
     @State private var showPass = false
     @State private var confirmRedraw = false
+    @State private var redrawError: String?
 
     private var draw: QuickDraw? { store.quickDraws.first { $0.id == drawId } }
 
@@ -146,6 +147,7 @@ struct QuickDrawView: View {
                         .card()
                     }
                     .padding(20)
+                    .readableWidth()
                 }
                 .background(Theme.paper.ignoresSafeArea())
                 .navigationTitle(draw.name)
@@ -154,6 +156,7 @@ struct QuickDrawView: View {
                         Menu {
                             Button { confirmRedraw = true } label: { Label("Opnieuw trekken", systemImage: "arrow.triangle.2.circlepath") }
                         } label: { Image(systemName: "ellipsis.circle") }
+                        .accessibilityLabel("Meer")
                     }
                 }
                 .bottomBar {
@@ -163,7 +166,7 @@ struct QuickDrawView: View {
                     }
                 }
                 .fullScreenCover(isPresented: $showPass) {
-                    PassPhoneView(names: draw.people, tint: Theme.accent(for: draw.occasion), seen: Binding(
+                    PassPhoneView(names: draw.people, tint: Theme.accent(for: draw.occasion), season: Season.of(draw.occasion), seen: Binding(
                         get: { store.quickDraws.first { $0.id == drawId }?.seen ?? [] },
                         set: { v in if var d = store.quickDraws.first(where: { $0.id == drawId }) { d.seen = v; store.upsertQuick(d) } }
                     )) { name in
@@ -175,6 +178,11 @@ struct QuickDrawView: View {
                     Button("Opnieuw trekken", role: .destructive) { redraw(draw) }
                 } message: {
                     Text("Iedereen krijgt een nieuw lootje en moet opnieuw kijken.")
+                }
+                .alert("Opnieuw trekken lukt niet", isPresented: Binding(get: { redrawError != nil }, set: { if !$0 { redrawError = nil } })) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(redrawError ?? "")
                 }
             } else {
                 ContentUnavailableView("Niet gevonden", systemImage: "questionmark")
@@ -198,6 +206,11 @@ struct QuickDrawView: View {
             nd.seen = []
             store.upsertQuick(nd)
             Haptics.success()
+        } else {
+            Haptics.warning()
+            let rules = d.exclusions.compactMap { p -> NamePair? in p.count == 2 ? NamePair(p[0], p[1]) : nil }
+            redrawError = DrawCheck.warning(names: d.people, exclusions: rules)
+                ?? "Met deze mensen en regels lukt een nieuwe trekking niet. De vorige trekking blijft staan."
         }
     }
 }

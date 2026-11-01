@@ -34,9 +34,9 @@ struct JoinView: View {
                                 .onSubmit { Task { await join() } }
                                 .padding(14)
                                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
-                            if preview.memberNames.contains(where: { $0.lowercased() == name.trimmed.lowercased() }) {
+                            if nameTaken(in: preview) {
                                 Text("Die naam staat er al in. Ben jij dat? Vraag dan de organisator om jouw persoonlijke link. Ben je iemand anders, voeg dan een achternaam toe.")
-                                    .font(.footnote).foregroundStyle(.orange)
+                                    .font(.footnote).foregroundStyle(Theme.warning)
                             }
                         }
                     } else {
@@ -66,6 +66,7 @@ struct JoinView: View {
                     }
                 }
                 .padding(20)
+                .readableWidth()
             }
             .background(Theme.paper.ignoresSafeArea())
             .navigationTitle("Meedoen")
@@ -76,7 +77,7 @@ struct JoinView: View {
                     PrimaryButton(title: "Zoek groep", isLoading: busy, isEnabled: !code.trimmed.isEmpty) { Task { await lookup() } }
                 } else {
                     PrimaryButton(title: "Doe mee", systemImage: "hand.raised.fill", tint: Theme.accent(for: preview!.group.occasion),
-                                  isLoading: busy, isEnabled: !name.trimmed.isEmpty && preview!.group.joinOpen && !preview!.group.isDrawn) {
+                                  isLoading: busy, isEnabled: !name.trimmed.isEmpty && preview!.group.joinOpen && !preview!.group.isDrawn && !nameTaken(in: preview!)) {
                         Task { await join() }
                     }
                 }
@@ -104,12 +105,20 @@ struct JoinView: View {
                 Text("Doen al mee: " + p.memberNames.joined(separator: ", "))
                     .font(.subheadline).foregroundStyle(.secondary)
             }
-            if p.group.isDrawn || !p.group.joinOpen {
-                Text("Aanmelden is gesloten: er is al getrokken. Vraag de organisator om je toe te voegen.")
-                    .font(.footnote).foregroundStyle(.orange)
+            if p.group.isDrawn {
+                Text("Er is al getrokken, dus aanmelden kan niet meer. Vraag de organisator om je toe te voegen.")
+                    .font(.footnote).foregroundStyle(Theme.warning)
+            } else if !p.group.joinOpen {
+                Text("De organisator heeft het aanmelden gesloten. Vraag de organisator om je toe te voegen.")
+                    .font(.footnote).foregroundStyle(Theme.warning)
             }
         }
         .card()
+    }
+
+    private func nameTaken(in p: JoinPreview) -> Bool {
+        let n = name.trimmed.lowercased()
+        return !n.isEmpty && p.memberNames.contains(where: { $0.lowercased() == n })
     }
 
     private func handlePasted(_ s: String) {
@@ -149,7 +158,7 @@ struct JoinView: View {
     }
 
     private func join() async {
-        guard let p = preview, !name.trimmed.isEmpty else { return }
+        guard let p = preview, !name.trimmed.isEmpty, !nameTaken(in: p), !busy else { return }
         busy = true
         defer { busy = false }
         do {
@@ -175,6 +184,7 @@ struct OpenMemberLinkView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
+    @State private var canRetry = false
     @State private var askManage = false
     @State private var loading = false
 
@@ -182,7 +192,19 @@ struct OpenMemberLinkView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 if let error {
-                    ContentUnavailableView("Link werkt niet", systemImage: "link", description: Text(error))
+                    ContentUnavailableView {
+                        Label("Link werkt niet", systemImage: "link")
+                    } description: {
+                        Text(error)
+                    } actions: {
+                        if canRetry {
+                            Button("Opnieuw proberen") {
+                                self.error = nil
+                                Task { await open() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
                 } else if askManage {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Dit is de link van een andere deelnemer").font(.title3.weight(.semibold))
@@ -223,6 +245,7 @@ struct OpenMemberLinkView: View {
             Reminders.schedule(for: g)
             onDone(store.group(g.id) ?? g)
         } catch {
+            canRetry = LinkErrors.isRetryable(error)
             self.error = error.localizedDescription
         }
     }
@@ -235,12 +258,25 @@ struct OpenAdminLinkView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
+    @State private var canRetry = false
 
     var body: some View {
         NavigationStack {
             VStack {
                 if let error {
-                    ContentUnavailableView("Beheerlink werkt niet", systemImage: "link", description: Text(error))
+                    ContentUnavailableView {
+                        Label("Beheerlink werkt niet", systemImage: "link")
+                    } description: {
+                        Text(error)
+                    } actions: {
+                        if canRetry {
+                            Button("Opnieuw proberen") {
+                                self.error = nil
+                                Task { await load() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
                 } else {
                     ProgressView("Groep wordt opgehaald…")
                 }
@@ -249,17 +285,28 @@ struct OpenAdminLinkView: View {
             .background(Theme.paper.ignoresSafeArea())
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Sluit") { dismiss() } } }
         }
-        .task {
-            do {
-                let s = try await API().adminStatus(token)
-                var g = store.group(s.group.id) ?? SavedGroup(id: s.group.id, name: s.group.name, occasion: s.group.occasion, eventDate: s.group.eventDate)
-                g.adminToken = token
-                store.upsert(g)
-                Haptics.success()
-                onDone(store.group(g.id) ?? g)
-            } catch {
-                self.error = error.localizedDescription
-            }
+        .task { await load() }
+    }
+
+    private func load() async {
+        do {
+            let s = try await API().adminStatus(token)
+            var g = store.group(s.group.id) ?? SavedGroup(id: s.group.id, name: s.group.name, occasion: s.group.occasion, eventDate: s.group.eventDate)
+            g.adminToken = token
+            store.upsert(g)
+            Haptics.success()
+            onDone(store.group(g.id) ?? g)
+        } catch {
+            canRetry = LinkErrors.isRetryable(error)
+            self.error = error.localizedDescription
         }
+    }
+}
+
+/// Network trouble is worth a retry; an invalid or removed link is not.
+private enum LinkErrors {
+    static func isRetryable(_ error: Error) -> Bool {
+        guard let e = error as? APIError else { return true }
+        return e.code == "offline" || e.code == "server"
     }
 }

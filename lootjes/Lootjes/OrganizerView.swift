@@ -15,7 +15,6 @@ struct OrganizerView: View {
     @State private var busy = false
     @State private var newName = ""
     @State private var toast: ToastData?
-    @State private var undo: (() -> Void)?
     @State private var showRules = false
     @State private var showPassPhone = false
     @State private var showEdit = false
@@ -25,6 +24,11 @@ struct OrganizerView: View {
     @State private var passSeen = Set<String>()
     @State private var drawing = false
     @State private var drawDone = false
+    @State private var confirmRemove: AdminMember?
+    @State private var confirmNextYear = false
+    @State private var nextYearBusy = false
+    /// The server no longer knows this group (deleted by the organizer, or the link is invalid).
+    @State private var groupGone = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var addFocus: Bool
 
@@ -33,7 +37,16 @@ struct OrganizerView: View {
 
     var body: some View {
         Group {
-            if let status {
+            if groupGone {
+                ContentUnavailableView {
+                    Label("Deze groep bestaat niet meer", systemImage: "questionmark.folder")
+                } description: {
+                    Text("De organisator heeft de groep verwijderd, of de beheerlink werkt niet meer.")
+                } actions: {
+                    Button("Verwijder van deze telefoon", role: .destructive) { forgetGroup() }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else if let status {
                 content(status)
             } else if let loadError {
                 ContentUnavailableView {
@@ -53,7 +66,7 @@ struct OrganizerView: View {
         .toolbar { toolbar }
         .task { await load() }
         .refreshable { await load() }
-        .toast($toast) { undo?() }
+        .toast($toast)
         .overlay {
             if drawing {
                 DrawingOverlay(season: Season.of(status?.group.occasion ?? .sinterklaas), done: drawDone)
@@ -61,7 +74,7 @@ struct OrganizerView: View {
             }
         }
         .sheet(isPresented: $showRules) {
-            if let status { RulesSheet(status: status, tint: tint) { pairs in await setRules(pairs) } }
+            if let status { RulesSheet(status: status, tint: tint) { pairs in try await setRules(pairs) } }
         }
         .sheet(isPresented: $showEdit) {
             if let status, let token = saved?.adminToken {
@@ -85,29 +98,50 @@ struct OrganizerView: View {
         } message: {
             Text("De lootjes, verlanglijstjes en berichten verdwijnen voor alle deelnemers.")
         }
+        .confirmationDialog(confirmRemove.map { "\($0.name) weghalen?" } ?? "",
+                            isPresented: Binding(get: { confirmRemove != nil }, set: { if !$0 { confirmRemove = nil } }),
+                            titleVisibility: .visible, presenting: confirmRemove) { m in
+            Button("Haal \(m.name) weg", role: .destructive) { Task { await remove(m) } }
+        } message: { m in
+            if status?.group.isDrawn == true {
+                Text("Het verlanglijstje van \(m.name) wordt ook gewist. De lootjes moeten daarna opnieuw getrokken worden.")
+            } else {
+                Text("Het verlanglijstje van \(m.name) wordt ook gewist.")
+            }
+        }
+        .confirmationDialog("Volgend jaar weer?", isPresented: $confirmNextYear, titleVisibility: .visible) {
+            Button("Maak nieuwe groep") { Task { await nextYear() } }
+        } message: {
+            if let g = status?.group {
+                Text("Nieuwe groep voor \(String(nextYearNumber(g))) maken met dezelfde mensen?")
+            }
+        }
     }
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button { showEdit = true } label: { Label("Groep aanpassen", systemImage: "pencil") }
-                Button { showRules = true } label: { Label("Wie mag wie niet trekken", systemImage: "person.2.slash") }
-                if status?.group.isDrawn == true {
-                    Button { confirmRedraw = true } label: { Label("Opnieuw trekken", systemImage: "arrow.triangle.2.circlepath") }
-                    Button { Task { await nextYear() } } label: { Label("Volgend jaar weer", systemImage: "calendar.badge.plus") }
-                }
-                Button {
-                    if let t = saved?.adminToken, let s = status {
-                        Share.present(text: "Beheerlink voor \(s.group.name) in de Lootjes-app. Wie deze link heeft, kan de groep beheren, maar niet zien wie wie heeft: \(AppConfig.adminURL(token: t).absoluteString)")
+            if !groupGone {
+                Menu {
+                    Button { showEdit = true } label: { Label("Groep aanpassen", systemImage: "pencil") }
+                    Button { showRules = true } label: { Label("Wie mag wie niet trekken", systemImage: "person.2.slash") }
+                    if status?.group.isDrawn == true {
+                        Button { confirmRedraw = true } label: { Label("Opnieuw trekken", systemImage: "arrow.triangle.2.circlepath") }
+                        Button { confirmNextYear = true } label: { Label("Volgend jaar weer", systemImage: "calendar.badge.plus") }
+                            .disabled(nextYearBusy)
                     }
-                } label: { Label("Beheer op ander toestel", systemImage: "iphone.and.arrow.forward") }
-                Divider()
-                Button(role: .destructive) { confirmDelete = true } label: { Label("Groep verwijderen", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis.circle")
+                    Button {
+                        if let t = saved?.adminToken, let s = status {
+                            Share.present(text: "Beheerlink voor \(s.group.name) in de Lootjes-app. Wie deze link heeft, kan de groep beheren, maar niet zien wie wie heeft: \(AppConfig.adminURL(token: t).absoluteString)")
+                        }
+                    } label: { Label("Beheer op ander toestel", systemImage: "iphone.and.arrow.forward") }
+                    Divider()
+                    Button(role: .destructive) { confirmDelete = true } label: { Label("Groep verwijderen", systemImage: "trash") }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("Meer")
             }
-            .accessibilityLabel("Meer")
         }
     }
 
@@ -129,6 +163,7 @@ struct OrganizerView: View {
             }
             .padding(20)
             .padding(.bottom, 20)
+            .readableWidth()
         }
         .scrollDismissesKeyboard(.interactively)
         .bottomBar {
@@ -173,7 +208,7 @@ struct OrganizerView: View {
                 .font(.subheadline)
             if s.repeatedLastYear == true {
                 Text("Let op: door de regels moest iemand dezelfde persoon trekken als vorig jaar.")
-                    .font(.footnote).foregroundStyle(.orange)
+                    .font(.footnote).foregroundStyle(Theme.warning)
             }
         }
         .card()
@@ -244,7 +279,7 @@ struct OrganizerView: View {
                     Spacer()
                     if !m.isOrganizer {
                         Button {
-                            Task { await remove(m) }
+                            confirmRemove = m
                         } label: {
                             Image(systemName: "minus.circle.fill").font(.title3).foregroundStyle(.secondary)
                                 .frame(width: 44, height: 44)
@@ -312,7 +347,7 @@ struct OrganizerView: View {
     private func passPhone(_ s: AdminStatus) -> some View {
         let tokens = saved?.memberTokens ?? [:]
         let people = s.members.filter { tokens[$0.id] != nil }
-        return PassPhoneView(names: people.map(\.name), tint: tint, seen: $passSeen) { name in
+        return PassPhoneView(names: people.map(\.name), tint: tint, season: Season.of(s.group.occasion), seen: $passSeen) { name in
             guard let m = people.first(where: { $0.name == name }), let t = tokens[m.id] else {
                 throw APIError(code: "no_link", message: "\(name) heeft een eigen link.")
             }
@@ -332,8 +367,10 @@ struct OrganizerView: View {
             status = s
             loadError = nil
             store.update(groupId) { $0.name = s.group.name; $0.eventDate = s.group.eventDate }
-        } catch let e as APIError where e.code == "auth" {
-            loadError = e.message
+        } catch let e as APIError where e.code == "auth" || e.code == "not_found" {
+            // The group was deleted (or the beheerlink no longer works).
+            loadError = nil
+            groupGone = true
         } catch {
             if status == nil { loadError = error.localizedDescription } else { toast = ToastData(message: error.localizedDescription) }
         }
@@ -360,21 +397,19 @@ struct OrganizerView: View {
         do {
             status = try await api.removeMember(token, memberId: m.id)
             store.update(groupId) { $0.memberTokens[m.id] = nil }
-            undo = { Task { newName = m.name; await add() } }
-            toast = ToastData(message: "\(m.name) weggehaald", undoTitle: "Ongedaan maken")
+            toast = ToastData(message: "\(m.name) weggehaald")
         } catch {
             toast = ToastData(message: error.localizedDescription)
         }
     }
 
-    private func setRules(_ pairs: [[String]]) async {
-        guard let token = saved?.adminToken else { return }
-        do {
-            status = try await api.setExclusions(token, pairs)
-            Haptics.success()
-        } catch {
-            toast = ToastData(message: error.localizedDescription)
+    /// Throws so the rules sheet can stay open and show the error.
+    private func setRules(_ pairs: [[String]]) async throws {
+        guard let token = saved?.adminToken else {
+            throw APIError(code: "auth", message: "Deze groep is niet van jou.")
         }
+        status = try await api.setExclusions(token, pairs)
+        Haptics.success()
     }
 
     private func draw(redraw: Bool) async {
@@ -421,10 +456,23 @@ struct OrganizerView: View {
         }
     }
 
+    /// Next year's event date: the occasion's default date after this group's event (or after today).
+    private func nextYearDate(_ g: GroupInfo) -> Date? {
+        let afterEvent = g.date.flatMap { Calendar.current.date(byAdding: .day, value: 1, to: $0) } ?? .now
+        return g.occasion.defaultDate(now: max(afterEvent, .now))
+    }
+
+    private func nextYearNumber(_ g: GroupInfo) -> Int {
+        if let d = nextYearDate(g) { return Calendar.current.component(.year, from: d) }
+        return Calendar.current.component(.year, from: g.date ?? .now) + 1
+    }
+
     private func nextYear() async {
-        guard let token = saved?.adminToken, let s = status else { return }
+        guard !nextYearBusy, let token = saved?.adminToken, let s = status else { return }
+        nextYearBusy = true
+        defer { nextYearBusy = false }
         do {
-            let created = try await api.nextYear(token, eventDate: s.group.occasion.defaultDate())
+            let created = try await api.nextYear(token, eventDate: nextYearDate(s.group))
             let g = store.saveCreated(created)
             Reminders.schedule(for: g)
             Haptics.success()
@@ -444,6 +492,17 @@ struct OrganizerView: View {
         } catch {
             toast = ToastData(message: error.localizedDescription)
         }
+    }
+
+    /// The group no longer exists on the server: forget it (and any extra people) on this phone.
+    private func forgetGroup() {
+        for extra in store.extraPeople(inGroup: groupId) {
+            _ = store.remove(extra.id)
+            Reminders.cancel(groupId: extra.id)
+        }
+        _ = store.remove(groupId)
+        Reminders.cancel(groupId: groupId)
+        dismiss()
     }
 }
 
@@ -475,10 +534,10 @@ private struct MemberStatusRow: View {
                     Button { manage(token) } label: { Label("Ik beheer dit lootje (bijv. kind)", systemImage: "person.crop.circle.badge.checkmark") }
                     Button(role: .destructive, action: renew) { Label("Nieuwe link maken", systemImage: "arrow.clockwise") }
                 } label: {
-                    Text(member.linkSentAt == nil ? "Stuur" : "Nogmaals")
+                    Text(member.linkSentAt == nil ? "Stuur" : "Opnieuw sturen")
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 14)
-                        .frame(minHeight: 40)
+                        .frame(minHeight: 44)
                         .foregroundStyle(member.linkSentAt == nil ? .white : tint)
                         .background(member.linkSentAt == nil ? tint : tint.opacity(0.12), in: Capsule())
                 } primaryAction: {
@@ -492,7 +551,7 @@ private struct MemberStatusRow: View {
                     Text(member.joinedSelf ? "Eigen link" : "Link maken")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(member.joinedSelf ? Color.secondary : tint)
-                        .frame(minHeight: 40)
+                        .frame(minHeight: 44)
                 }
             }
         }
@@ -514,7 +573,7 @@ private struct StatusPill: View {
                 Text(on ? onText : offText)
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(on ? Color.green : Color.secondary)
+            .foregroundStyle(on ? Theme.green : Color.secondary)
         }
     }
 }
@@ -544,12 +603,14 @@ private struct ProgressChecklist: View {
     private struct Row: View {
         let done: Bool
         let title: String
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         var body: some View {
             HStack(spacing: 10) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(done ? Color.green : Color.secondary)
+                    .foregroundStyle(done ? Theme.green : Color.secondary)
                     .contentTransition(.symbolEffect(.replace))
                     .symbolEffect(.bounce, value: done)
+                    .symbolEffectsRemoved(reduceMotion)
                 Text(title).font(.subheadline).foregroundStyle(done ? .secondary : .primary)
                     .contentTransition(.numericText())
             }
@@ -562,10 +623,14 @@ private struct ProgressChecklist: View {
 private struct RulesSheet: View {
     let status: AdminStatus
     let tint: Color
-    let save: ([[String]]) async -> Void
+    let save: ([[String]]) async throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var pairs: [NamePair] = []
+    @State private var initial: [NamePair] = []
     @State private var busy = false
+    @State private var error: String?
+
+    private var hasChanges: Bool { Set(pairs) != Set(initial) }
 
     var body: some View {
         NavigationStack {
@@ -579,31 +644,49 @@ private struct RulesSheet: View {
                         Button("Bewaar") {
                             Task {
                                 busy = true
+                                error = nil
                                 let ids = Dictionary(status.members.map { ($0.name, $0.id) }, uniquingKeysWith: { a, _ in a })
-                                await save(pairs.compactMap { p in
-                                    guard let a = ids[p.a], let b = ids[p.b] else { return nil }
-                                    return [a, b]
-                                })
-                                busy = false
-                                dismiss()
+                                do {
+                                    try await save(pairs.compactMap { p in
+                                        guard let a = ids[p.a], let b = ids[p.b] else { return nil }
+                                        return [a, b]
+                                    })
+                                    busy = false
+                                    dismiss()
+                                } catch {
+                                    busy = false
+                                    Haptics.warning()
+                                    self.error = error.localizedDescription
+                                }
                             }
                         }
                         .disabled(busy)
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    if status.group.isDrawn {
-                        Text("Er is al getrokken. Nieuwe regels gelden pas als je opnieuw trekt.")
-                            .font(.footnote).foregroundStyle(.secondary).padding()
+                    if error != nil || status.group.isDrawn {
+                        VStack(spacing: 6) {
+                            if let error {
+                                Label(error, systemImage: "exclamationmark.circle")
+                                    .font(.footnote).foregroundStyle(.red)
+                            }
+                            if status.group.isDrawn {
+                                Text("Er is al getrokken. Nieuwe regels gelden pas als je opnieuw trekt.")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding()
                     }
                 }
         }
+        .interactiveDismissDisabled(hasChanges || busy)
         .onAppear {
             let names = Dictionary(status.members.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
             pairs = status.exclusions.compactMap { p in
                 guard p.count == 2, let a = names[p[0]], let b = names[p[1]] else { return nil }
                 return NamePair(a, b)
             }
+            initial = pairs
         }
     }
 }
@@ -621,6 +704,23 @@ private struct EditGroupSheet: View {
     @State private var joinOpen = true
     @State private var error: String?
     @State private var busy = false
+    @State private var loaded = false
+
+    /// Compared with the values the sheet opened with, so a swipe-down can't lose edits.
+    private var hasChanges: Bool {
+        guard loaded else { return false }
+        let dateChanged: Bool
+        if let d = group.date {
+            dateChanged = !hasDate || !Calendar.current.isDate(d, inSameDayAs: date)
+        } else {
+            dateChanged = hasDate
+        }
+        return name != group.name
+            || dateChanged
+            || budget != group.budgetCents
+            || note != (group.note ?? "")
+            || (!group.isDrawn && joinOpen != group.joinOpen)
+    }
 
     var body: some View {
         NavigationStack {
@@ -653,12 +753,15 @@ private struct EditGroupSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(hasChanges || busy)
         .onAppear {
+            guard !loaded else { return }
             name = group.name
             if let d = group.date { hasDate = true; date = d }
             budget = group.budgetCents
             note = group.note ?? ""
             joinOpen = group.joinOpen
+            loaded = true
         }
     }
 

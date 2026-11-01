@@ -123,6 +123,14 @@ struct API {
         let _: OK = try await call("sendMessage", ["token": token, "thread": thread.rawValue, "body": body])
     }
 
+    func reportMessage(_ token: String, messageId: String, reason: String?) async throws {
+        let _: OK = try await call("reportMessage", ["token": token, "messageId": messageId, "reason": reason])
+    }
+
+    func setBlocked(_ token: String, thread: ChatMessage.Thread, blocked: Bool) async throws {
+        let _: OK = try await call("setBlocked", ["token": token, "thread": thread.rawValue, "blocked": blocked])
+    }
+
     struct SearchStatus: Codable { let available: Bool; let partnerLinks: Bool }
 
     func searchStatus() async throws -> SearchStatus {

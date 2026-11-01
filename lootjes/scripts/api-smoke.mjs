@@ -82,6 +82,19 @@ try {
   await call('sendMessage', { token: tok.Anna, thread: 'mySint', body: 'Groen' });
   const g2 = await call('me', { token: tok[giverOfAnna] });
   ok(g2.messages.some((m) => m.thread === 'myLootje' && !m.fromMe && m.body === 'Groen'), 'answer reaches the giver');
+  // Report and block (App Store guideline 1.2).
+  const rep = await call('reportMessage', { token: tok.Anna, messageId: q.id, reason: 'test' });
+  ok(rep.ok === true, 'receiver can report a message from their Sint');
+  const someoneElse = Object.keys(tok).find((n) => n !== 'Anna' && n !== giverOfAnna);
+  const rep2 = await call('reportMessage', { token: tok[someoneElse], messageId: q.id }, true);
+  ok(rep2.status === 404, 'others cannot report (or see) that message');
+  const ownMsg = await call('reportMessage', { token: tok[giverOfAnna], messageId: q.id }, true);
+  ok(ownMsg.status === 404, 'you cannot report your own message');
+  await call('setBlocked', { token: tok.Anna, thread: 'mySint', blocked: true });
+  await call('sendMessage', { token: tok[giverOfAnna], thread: 'myLootje', body: 'Na blokkeren' });
+  const a2 = await call('me', { token: tok.Anna });
+  ok(a2.blocked?.mySint === true && !a2.messages.some((m) => m.body === 'Na blokkeren'), 'blocked Sint can no longer reach the receiver');
+  await call('setBlocked', { token: tok.Anna, thread: 'mySint', blocked: false });
 
   await call('setGiftReady', { token: tok.Anna, ready: true });
   await call('markLinkSent', { adminToken: admin, memberId: id.Anna });

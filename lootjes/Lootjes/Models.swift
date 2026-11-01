@@ -190,6 +190,15 @@ struct MeResponse: Codable, Equatable {
     var messages: [ChatMessage]
     var myItems: [WishItem]?
     var shopItems: [ShopItem]?
+    var blocked: Blocked?
+
+    struct Blocked: Codable, Equatable {
+        var mySint: Bool
+        var myLootje: Bool
+    }
+    func isBlocked(_ t: ChatMessage.Thread) -> Bool {
+        t == .mySint ? (blocked?.mySint ?? false) : (blocked?.myLootje ?? false)
+    }
 }
 
 struct JoinPreview: Codable, Equatable {

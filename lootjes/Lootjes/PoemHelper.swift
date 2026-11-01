@@ -177,6 +177,7 @@ struct PoemHelperView: View {
                     }
                 }
                 .padding(20)
+                .readableWidth()
             }
             .background(Theme.paper.ignoresSafeArea())
             .navigationTitle("Gedicht")

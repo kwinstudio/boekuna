@@ -72,6 +72,9 @@ try {
   await page.goto(`${WEB}/privacy`);
   await page.getByText('Wat we niet doen').waitFor();
   ok(true, 'privacy page renders');
+  await page.goto(`${WEB}/support`);
+  await page.getByText('Hulp en contact').waitFor();
+  ok(true, 'support page renders');
   const aasa = await fetch(`${WEB}/.well-known/apple-app-site-association`);
   const aj = await aasa.json().catch(() => null);
   ok(aasa.ok && /json/.test(aasa.headers.get('content-type') || '') && aj?.applinks?.details?.[0]?.appIDs?.[0] === '4PUWX9ZXQL.nl.zichtwerfstudio.lootjes',

@@ -124,7 +124,7 @@ struct DemoRoot: View {
             case "wishlist":
                 MyWishlistView(token: "demo", budget: 2500, tint: Theme.red, items: .constant(Demo.myItems))
             case "shops":
-                ShopBrowserView(tint: Theme.red) { _ in }
+                ShopBrowserView(tint: Theme.red) { _ in nil }
             case "poem":
                 PoemHelperView(receiverName: "Oma Riet", wishlist: "Een mooie plant", tint: Theme.red)
             case "pass":

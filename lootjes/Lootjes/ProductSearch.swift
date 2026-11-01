@@ -56,7 +56,8 @@ enum WishLine {
 struct GiftSearchSection: View {
     let tint: Color
     var budgetCents: Int? = nil
-    let onAdd: (WishDraft) -> Void
+    /// Returns true when the wish was saved (only then the row shows a check mark).
+    let onAdd: (WishDraft) async -> Bool
 
     private let catalog = GiftCatalog.shared
     @State private var category: String? = nil
@@ -101,8 +102,7 @@ struct GiftSearchSection: View {
                 VStack(spacing: 0) {
                     ForEach(results) { p in
                         ProductRow(product: p, tint: tint, added: added.contains(p.id)) {
-                            onAdd(WishDraft(title: p.title, url: p.url, imageUrl: p.imageUrl, priceCents: p.price))
-                            added.insert(p.id)
+                            Task { if await onAdd(WishDraft(title: p.title, url: p.url, imageUrl: p.imageUrl, priceCents: p.price)) { added.insert(p.id) } }
                             Haptics.success()
                         }
                         Divider()
@@ -175,8 +175,7 @@ struct GiftSearchSection: View {
                 IdeaRow(idea: idea, symbol: catalog.category(idea.category)?.symbol ?? "gift", tint: tint,
                         fits: budgetCents.map { idea.minEuro * 100 <= $0 } ?? true,
                         added: added.contains("idea:\(idea.id)")) {
-                    onAdd(WishDraft(title: idea.name))
-                    added.insert("idea:\(idea.id)")
+                    Task { if await onAdd(WishDraft(title: idea.name)) { added.insert("idea:\(idea.id)") } }
                     Haptics.success()
                 } look: {
                     safariURL = WishLine.searchURL(idea.name, shop: .bol)
@@ -250,9 +249,14 @@ struct GiftSearchSection: View {
         // Keep any product name that came along with the link.
         let title = text.replacingOccurrences(of: url.absoluteString, with: "").trimmed
         let name = title.isEmpty || title.count > 120 ? (url.host() ?? url.absoluteString).replacingOccurrences(of: "www.", with: "") : title
-        onAdd(WishDraft(title: name, url: url.absoluteString))
-        message = "Link toegevoegd."
-        Haptics.success()
+        Task {
+            if await onAdd(WishDraft(title: name, url: url.absoluteString)) {
+                message = "Link toegevoegd."
+                Haptics.success()
+            } else {
+                message = "Niet opgeslagen. Controleer je internet en probeer het opnieuw."
+            }
+        }
     }
 }
 
@@ -280,13 +284,13 @@ private struct IdeaRow: View {
             Spacer(minLength: 4)
             Button(action: look) {
                 Image(systemName: "magnifyingglass").font(.subheadline).foregroundStyle(.secondary)
-                    .frame(width: 40, height: 44)
+                    .frame(width: 44, height: 44)
             }
             .accessibilityLabel("Bekijk \(idea.name) in een winkel")
             Button(action: add) {
                 Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(added ? Color.green : tint)
+                    .foregroundStyle(added ? Theme.green : tint)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 44, height: 44)
             }
@@ -321,7 +325,7 @@ private struct ProductRow: View {
             Button(action: add) {
                 Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(added ? Color.green : tint)
+                    .foregroundStyle(added ? Theme.green : tint)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 44, height: 44)
             }

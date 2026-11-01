@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 SIM="${SIM:-$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); c=[v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPhone") and "Pro Max" in v["name"]] or [v for k,vs in d["devices"].items() if "iOS" in k for v in vs if v["name"].startswith("iPhone")]; print(c[-1]["udid"])')}"
 APP=build/DerivedData/Build/Products/Debug-iphonesimulator/Lootjes.app
 [[ -d "$APP" ]] || { echo "App not built"; exit 1; }
+[[ -f "$APP/PrivacyInfo.xcprivacy" ]] && echo "::notice title=Privacy::Privacy manifest is in the app." || echo "::warning title=Privacy::PrivacyInfo.xcprivacy missing from the app bundle."
 xcrun simctl boot "$SIM" >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$SIM" -b
 xcrun simctl status_bar "$SIM" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 || true

@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var toast: ToastData?
     @State private var undo: (() -> Void)?
     @State private var showSettings = false
+    @State private var confirmRemoveGroup: SavedGroup?
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -87,12 +88,17 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                         .listRowBackground(Theme.card)
                         .swipeActions {
-                            Button(role: .destructive) {
-                                if let removed = store.remove(g.id) {
-                                    undo = { store.upsert(removed) }
-                                    toast = ToastData(message: "\(removed.name) verwijderd van deze telefoon", undoTitle: "Ongedaan maken")
-                                }
-                            } label: { Label("Verwijder", systemImage: "trash") }
+                            if g.isOrganizer {
+                                // Not a destructive role: the row must stay until the user confirms.
+                                Button {
+                                    confirmRemoveGroup = g
+                                } label: { Label("Verwijder", systemImage: "trash") }
+                                .tint(.red)
+                            } else {
+                                Button(role: .destructive) {
+                                    removeGroup(g, undoable: true)
+                                } label: { Label("Verwijder", systemImage: "trash") }
+                            }
                         }
                     }
                 } header: {
@@ -140,13 +146,47 @@ struct HomeView: View {
             }
             Section("Meer") {
                 ActionRow(icon: "envelope.open", title: "Ik heb een uitnodiging", subtitle: "Meedoen met een code of link") { router.sheet = .join(code: nil) }
-                ActionRow(icon: "person.3", title: "Iedereen is hier", subtitle: "Trekken op deze telefoon, zonder internet") { router.sheet = .quickDraw }
+                ActionRow(icon: "person.3", title: "Samen op één telefoon trekken", subtitle: "Trekken op deze telefoon, zonder internet") { router.sheet = .quickDraw }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .readableWidth(700)
         .bottomBar {
             PrimaryButton(title: "Nieuwe trekking", systemImage: "plus") { router.sheet = .create }
+        }
+        .confirmationDialog(confirmRemoveGroup.map { "\($0.name) van deze telefoon verwijderen?" } ?? "",
+                            isPresented: Binding(get: { confirmRemoveGroup != nil }, set: { if !$0 { confirmRemoveGroup = nil } }),
+                            titleVisibility: .visible, presenting: confirmRemoveGroup) { g in
+            Button("Verwijder van deze telefoon", role: .destructive) { removeGroup(g, undoable: false) }
+            if let token = g.adminToken {
+                Button("Bewaar eerst de beheerlink") {
+                    let text = "Beheerlink voor \(g.name) in de Lootjes-app. Wie deze link heeft, kan de groep beheren, maar niet zien wie wie heeft: \(AppConfig.adminURL(token: token).absoluteString)"
+                    // Wait for the dialog to finish dismissing before presenting the share sheet.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(400))
+                        Share.present(text: text)
+                    }
+                }
+            }
+        } message: { _ in
+            Text("Je kunt deze groep daarna niet meer beheren, tenzij je de beheerlink hebt bewaard.")
+        }
+    }
+
+    /// Removes a group from this phone only (the group itself stays on the server).
+    private func removeGroup(_ g: SavedGroup, undoable: Bool) {
+        guard let removed = store.remove(g.id) else { return }
+        Reminders.cancel(groupId: removed.id)
+        if undoable {
+            undo = {
+                store.upsert(removed)
+                Reminders.schedule(for: removed)
+            }
+            toast = ToastData(message: "\(removed.name) verwijderd van deze telefoon", undoTitle: "Ongedaan maken")
+        } else {
+            undo = nil
+            toast = ToastData(message: "\(removed.name) verwijderd van deze telefoon")
         }
     }
 }
@@ -163,21 +203,23 @@ private struct GroupRow: View {
                 .background(Theme.red.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name).font(.body.weight(.medium))
-                HStack(spacing: 6) {
-                    Text(group.isOrganizer ? "Organisator" : (group.memberId != nil ? "Lootje van \(group.myName ?? "")" : "Deelnemer"))
-                    if let date = group.date, let c = DayFormat.countdown(to: date) {
-                        Text("·")
-                        Text("\(group.occasion.eventWord.capitalizedFirst) \(c)")
-                    }
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
         }
         .frame(minHeight: 56)
         .contentShape(Rectangle())
+    }
+
+    private var subtitle: String {
+        var parts = [group.isOrganizer ? "Organisator" : (group.memberId != nil ? "Lootje van \(group.myName ?? "")" : "Deelnemer")]
+        if let date = group.date, let c = DayFormat.countdown(to: date) {
+            parts.append("\(group.occasion.eventWord.capitalizedFirst) \(c)")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -204,7 +246,7 @@ private struct EmptyHome: View {
             Section("Wat wil je doen?") {
                 ActionRow(icon: "plus.circle", title: "Nieuwe trekking", subtitle: "Groep maken en mensen uitnodigen") { router.sheet = .create }
                 ActionRow(icon: "envelope.open", title: "Ik heb een uitnodiging", subtitle: "Meedoen met een code of link") { router.sheet = .join(code: nil) }
-                ActionRow(icon: "person.3", title: "Iedereen is hier", subtitle: "Trekken op deze telefoon, zonder internet") { router.sheet = .quickDraw }
+                ActionRow(icon: "person.3", title: "Samen op één telefoon trekken", subtitle: "Trekken op deze telefoon, zonder internet") { router.sheet = .quickDraw }
             }
             Section {
                 InfoRow(icon: "lock", text: "Geen account of wachtwoord nodig")
@@ -217,6 +259,7 @@ private struct EmptyHome: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
+        .readableWidth(700)
     }
 }
 

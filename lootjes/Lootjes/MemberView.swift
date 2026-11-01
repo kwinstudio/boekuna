@@ -22,6 +22,7 @@ struct MemberView: View {
     @State private var chat: ChatMessage.Thread?
     @State private var confirmLeave = false
     @State private var warnOpened = false
+    @State private var gone = false
     @AppStorage("revealed") private var revealedRaw = ""
     @Environment(\.dismiss) private var dismiss
 
@@ -32,7 +33,15 @@ struct MemberView: View {
 
     var body: some View {
         Group {
-            if let data {
+            if gone {
+                ContentUnavailableView {
+                    Label("Deze groep bestaat niet meer", systemImage: "person.crop.circle.badge.xmark")
+                } description: {
+                    Text("De organisator heeft de groep verwijderd of je eruit gehaald.")
+                } actions: {
+                    Button("Verwijder van deze telefoon") { forget() }.buttonStyle(.borderedProminent)
+                }
+            } else if let data {
                 content(data)
             } else if let loadError {
                 ContentUnavailableView {
@@ -55,12 +64,13 @@ struct MemberView: View {
         .sheet(isPresented: $showWishlist, onDismiss: { Task { await load() } }) {
             if let data, let token {
                 MyWishlistView(token: token, budget: data.group.budgetCents, tint: tint,
-                               items: Binding(get: { self.data?.myItems ?? [] }, set: { self.data?.myItems = $0 }))
+                               items: Binding(get: { self.data?.myItems ?? [] }, set: { self.data?.myItems = $0 }),
+                               giverWord: data.group.occasion.giverWord)
             }
         }
         .sheet(isPresented: $showPoem) {
             if let data, let r = data.receiver {
-                PoemHelperView(receiverName: r.name, wishlist: (r.items ?? []).map(\.title).joined(separator: "\n") + r.wishlist, tint: tint)
+                PoemHelperView(receiverName: r.name, wishlist: ((r.items ?? []).map(\.title) + [r.wishlist]).filter { !$0.trimmed.isEmpty }.joined(separator: "\n"), tint: tint)
             }
         }
         .sheet(item: $chat) { thread in
@@ -77,6 +87,7 @@ struct MemberView: View {
                     Menu {
                         Button(role: .destructive) { confirmLeave = true } label: { Label("Uit de groep stappen", systemImage: "rectangle.portrait.and.arrow.right") }
                     } label: { Image(systemName: "ellipsis.circle") }
+                    .accessibilityLabel("Meer")
                 }
             }
         }
@@ -101,6 +112,7 @@ struct MemberView: View {
                 groupInfo(d)
             }
             .padding(20)
+            .readableWidth()
         }
     }
 
@@ -141,7 +153,7 @@ struct MemberView: View {
                 }
                 if warnOpened && !d.me.isOrganizer {
                     Text("Deze link is al eerder geopend. Was jij dat niet? Vraag de organisator om een nieuwe link.")
-                        .font(.footnote).foregroundStyle(.orange)
+                        .font(.footnote).foregroundStyle(Theme.warning)
                 }
             }
         } else {
@@ -156,7 +168,7 @@ struct MemberView: View {
                 Toggle(isOn: Binding(get: { d.giftReady }, set: { v in Task { await setReady(v) } })) {
                     Label("Cadeau is klaar", systemImage: "gift.fill")
                 }
-                .tint(.green)
+                .tint(Theme.green)
                 .frame(minHeight: 44)
             }
             .card()
@@ -201,7 +213,8 @@ struct MemberView: View {
         }
         if let token {
             ShoppingListCard(token: token, budget: d.group.budgetCents, tint: tint,
-                             items: Binding(get: { self.data?.shopItems ?? [] }, set: { self.data?.shopItems = $0 })) {
+                             items: Binding(get: { self.data?.shopItems ?? [] }, set: { self.data?.shopItems = $0 }),
+                             occasion: d.group.occasion) {
                 Task { await load() }
             }
         }
@@ -233,7 +246,7 @@ struct MemberView: View {
                 }
                 let mine = d.myItems ?? []
                 if mine.isEmpty {
-                    Text(nudge ? "Vul het alvast in. Dan weet je Sint meteen wat je leuk vindt." : "Je Sint ziet nog niets. Help hem op weg!")
+                    Text(nudge ? "Vul het alvast in. Dan weet je \(d.group.occasion.giverWord) meteen wat je leuk vindt." : "Je \(d.group.occasion.giverWord) ziet nog niets. Help een handje!")
                         .font(.subheadline).foregroundStyle(.secondary)
                 } else {
                     ForEach(mine.prefix(4)) { item in
@@ -294,16 +307,27 @@ struct MemberView: View {
             offline = false
             if let raw = try? JSONEncoder().encode(d) { UserDefaults.standard.set(raw, forKey: cacheKey) }
             store.update(groupId) { $0.name = d.group.name; $0.eventDate = d.group.eventDate; $0.myName = d.me.name }
+        } catch let e as APIError where e.code == "auth" || e.code == "not_found" {
+            // Removed from the group, or the group was deleted: don't keep showing an old lootje.
+            UserDefaults.standard.removeObject(forKey: cacheKey)
+            data = nil
+            gone = true
         } catch {
             if data == nil { loadError = error.localizedDescription } else { offline = true }
         }
+    }
+
+    private func forget() {
+        Reminders.cancel(groupId: groupId)
+        _ = store.remove(groupId)
+        dismiss()
     }
 
     private func received(_ d: MeResponse, _ t: ChatMessage.Thread) -> Int {
         d.messages.filter { $0.thread == t && !$0.fromMe }.count
     }
 
-    private func seenKey(_ t: ChatMessage.Thread) -> String { "chatSeen.\(groupId).\(t.rawValue)" }
+    private func seenKey(_ t: ChatMessage.Thread) -> String { "chatSeen.\(groupId).\(data?.group.drawnAt ?? "").\(t.rawValue)" }
 
     private func unread(_ d: MeResponse, _ t: ChatMessage.Thread) -> Int {
         max(0, received(d, t) - UserDefaults.standard.integer(forKey: seenKey(t)))
@@ -316,7 +340,7 @@ struct MemberView: View {
 
     private func markRevealed() {
         revealedRaw = (revealedRaw.split(separator: ",").map(String.init) + [revealKey]).joined(separator: ",")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (Festive.enabled(reduceMotion: UIAccessibility.isReduceMotionEnabled) ? 1.8 : 0.2)) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) { revealedNow = true }
         }
     }
@@ -335,6 +359,7 @@ struct MemberView: View {
         guard let token else { return }
         do {
             try await api.leave(token)
+            Reminders.cancel(groupId: groupId)
             _ = store.remove(groupId)
             dismiss()
         } catch {
@@ -392,6 +417,12 @@ struct ChatView: View {
     @State private var sending = false
     @State private var local: [ChatMessage] = []
     @State private var error: String?
+    @State private var reportTarget: ChatMessage?
+    @State private var notice: String?
+    @State private var blocked: Bool?
+    @State private var confirmBlock = false
+
+    private var isBlocked: Bool { blocked ?? data.isBlocked(thread) }
 
     private var otherName: String {
         thread == .myLootje ? (data.receiver?.name ?? "je lootje") : "je \(data.group.occasion.giverWord)"
@@ -418,13 +449,25 @@ struct ChatView: View {
                                     .padding(.horizontal, 14).padding(.vertical, 10)
                                     .foregroundStyle(m.fromMe ? .white : .primary)
                                     .background(m.fromMe ? tint : Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    .contextMenu {
+                                        if !m.fromMe {
+                                            Button { reportTarget = m } label: { Label("Meld dit bericht", systemImage: "flag") }
+                                        }
+                                    }
                                 if !m.fromMe { Spacer(minLength: 50) }
                             }
                             .id(m.id)
+                            .accessibilityElement(children: .combine)
                             .accessibilityLabel((m.fromMe ? "Jij: " : "\(otherName.capitalizedFirst): ") + m.body)
+                            .accessibilityAction(named: "Meld dit bericht") { if !m.fromMe { reportTarget = m } }
+                        }
+                        if messages.contains(where: { !$0.fromMe }) {
+                            Text("Een vervelend bericht? Houd het ingedrukt om het te melden.")
+                                .font(.caption).foregroundStyle(.secondary).padding(.top, 6)
                         }
                     }
                     .padding(16)
+                    .readableWidth()
                 }
                 .onAppear { proxy.scrollTo(messages.last?.id, anchor: .bottom) }
                 .onChange(of: messages.count) { _, _ in withAnimation { proxy.scrollTo(messages.last?.id, anchor: .bottom) } }
@@ -432,6 +475,15 @@ struct ChatView: View {
             .background(Theme.paper.ignoresSafeArea())
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 6) {
+                    if isBlocked {
+                        HStack {
+                            Label("Je krijgt geen berichten meer van \(otherName).", systemImage: "hand.raised.fill")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Deblokkeer") { Task { await setBlocked(false) } }.font(.footnote.weight(.semibold))
+                                .frame(minHeight: 44)
+                        }
+                    }
                     if let error { Text(error).font(.footnote).foregroundStyle(.red) }
                     HStack(alignment: .bottom, spacing: 8) {
                         TextField(thread == .myLootje ? "Vraag iets aan \(otherName)" : "Antwoord", text: $draft, axis: .vertical)
@@ -448,14 +500,70 @@ struct ChatView: View {
                         .accessibilityLabel("Verstuur")
                     }
                 }
+                .readableWidth()
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(.bar)
             }
             .navigationTitle(thread == .myLootje ? "Vraag aan \(otherName)" : "Je \(data.group.occasion.giverWord)")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Klaar") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Klaar") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        if isBlocked {
+                            Button { Task { await setBlocked(false) } } label: { Label("Deblokkeer \(otherName)", systemImage: "hand.raised.slash") }
+                        } else {
+                            Button(role: .destructive) { confirmBlock = true } label: { Label("Blokkeer berichten van \(otherName)", systemImage: "hand.raised") }
+                        }
+                    } label: { Image(systemName: "ellipsis.circle") }
+                    .accessibilityLabel("Meer")
+                }
+            }
+            .confirmationDialog("Dit bericht melden?", isPresented: Binding(get: { reportTarget != nil }, set: { if !$0 { reportTarget = nil } }), titleVisibility: .visible) {
+                Button("Meld bericht", role: .destructive) { if let m = reportTarget { Task { await report(m) } } }
+                Button("Meld en blokkeer", role: .destructive) { if let m = reportTarget { Task { await report(m); await setBlocked(true) } } }
+            } message: {
+                Text("Zichtwerf Studio bekijkt het bericht. Wie het stuurde, hoort niet dat jij het hebt gemeld.")
+            }
+            .confirmationDialog("Geen berichten meer van \(otherName)?", isPresented: $confirmBlock, titleVisibility: .visible) {
+                Button("Blokkeer", role: .destructive) { Task { await setBlocked(true) } }
+            } message: {
+                Text("Je kunt dit later weer ongedaan maken.")
+            }
+            .alert(notice ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
+                Button("OK", role: .cancel) {}
+            }
         }
+        .task {
+            // Pick up new messages while the chat is open.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(20))
+                if Task.isCancelled { break }
+                await reload()
+            }
+        }
+        .onChange(of: data.messages.count) { _, _ in local.removeAll() }
         .onDisappear { Task { await reload() } }
+    }
+
+    private func report(_ m: ChatMessage) async {
+        do {
+            try await API().reportMessage(token, messageId: m.id, reason: nil)
+            notice = "Bedankt. We bekijken het bericht."
+            Haptics.success()
+        } catch {
+            notice = error.localizedDescription
+        }
+    }
+
+    private func setBlocked(_ on: Bool) async {
+        do {
+            try await API().setBlocked(token, thread: thread, blocked: on)
+            blocked = on
+            Haptics.tap()
+        } catch {
+            notice = error.localizedDescription
+        }
     }
 
     private var messages: [ChatMessage] { data.messages.filter { $0.thread == thread } + local }
