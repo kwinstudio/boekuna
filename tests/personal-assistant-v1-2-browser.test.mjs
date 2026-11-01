@@ -95,6 +95,8 @@ async function ask(question){
 async function closeDialog(){if(await page.getByRole('dialog').count())await page.getByRole('dialog').getByLabel('Sluiten',{exact:true}).click()}
 
 try{
+ // The fixture is dated October 2026 and the overview shows this month: pin the clock so the test does not age.
+ await page.clock.setFixedTime(new Date('2026-10-20T10:00:00'));
  await page.goto(base,{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'Overzicht'}).waitFor();
 
