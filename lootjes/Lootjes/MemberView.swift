@@ -93,6 +93,9 @@ struct MemberView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                FestiveHeader(season: Season.of(d.group.occasion), title: d.group.occasion == .anders ? d.group.name : d.group.occasion.title,
+                              date: d.group.date, eventWord: d.group.occasion.eventWord,
+                              detail: d.group.budgetCents.map { "Budget \($0.euroText)" })
                 if let r = d.receiver {
                     lootje(d, r)
                 } else {
@@ -136,7 +139,7 @@ struct MemberView: View {
     private func lootje(_ d: MeResponse, _ r: Receiver) -> some View {
         if !hasRevealed && !revealedNow {
             VStack(spacing: 14) {
-                RevealCard(receiverName: r.name, tint: tint) {
+                EnvelopeReveal(receiverName: r.name, season: Season.of(d.group.occasion)) {
                     markRevealed()
                 }
                 if warnOpened && !d.me.isOrganizer {
@@ -301,7 +304,7 @@ struct MemberView: View {
 
     private func markRevealed() {
         revealedRaw = (revealedRaw.split(separator: ",").map(String.init) + [revealKey]).joined(separator: ",")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) { revealedNow = true }
         }
     }

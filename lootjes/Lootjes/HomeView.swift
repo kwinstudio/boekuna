@@ -70,6 +70,11 @@ struct HomeView: View {
 
     private var list: some View {
         List {
+            Section {
+                SeasonBanner()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
             if !store.groups.isEmpty {
                 Section {
                     ForEach(store.sortedGroups) { g in
@@ -182,6 +187,11 @@ private struct EmptyHome: View {
     var body: some View {
         List {
             Section {
+                SeasonBanner()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+            Section {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Lootjes trekken voor Sinterklaas of Kerst")
                         .font(.title3.weight(.semibold))
@@ -254,4 +264,14 @@ private struct InfoRow: View {
 
 extension String {
     var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
+}
+
+/// The season's countdown on the home screen (Sinterklaas until 5 December, then Christmas).
+private struct SeasonBanner: View {
+    var body: some View {
+        let season = Season.current()
+        let occasion: Occasion = season == .kerst ? .kerst : .sinterklaas
+        FestiveHeader(season: season, title: season == .kerst ? "Kerst" : "Sinterklaas",
+                      date: occasion.defaultDate(), eventWord: occasion.eventWord)
+    }
 }

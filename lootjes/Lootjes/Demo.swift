@@ -86,6 +86,27 @@ struct DemoRoot: View {
                 NavigationStack { MemberView(groupId: "demo", preview: Demo.me, previewRevealed: false) }
             case "member":
                 NavigationStack { MemberView(groupId: "demo", preview: Demo.me) }
+            case "opening":
+                ScrollView {
+                    VStack(spacing: 16) {
+                        FestiveHeader(season: .sint, title: "Sinterklaas", date: Demo.group.date, eventWord: "pakjesavond", detail: "Budget € 25")
+                        EnvelopeReveal(receiverName: "Oma Riet", season: .sint, autoOpen: true)
+                    }
+                    .padding(20)
+                }
+                .background(Theme.paper.ignoresSafeArea())
+            case "drawing":
+                NavigationStack { OrganizerView(groupId: "demo", preview: Demo.beforeDraw) }
+                    .overlay { DrawingOverlay(season: .sint, done: false) }
+            case "kerst":
+                ScrollView {
+                    VStack(spacing: 16) {
+                        FestiveHeader(season: .kerst, title: "Kerst", date: Occasion.kerst.defaultDate(), eventWord: "kerst")
+                        EnvelopeReveal(receiverName: "Sanne", season: .kerst)
+                    }
+                    .padding(20)
+                }
+                .background(Theme.paper.ignoresSafeArea())
             case "poem":
                 PoemHelperView(receiverName: "Oma Riet", wishlist: "Een mooie plant", tint: Theme.red)
             case "pass":

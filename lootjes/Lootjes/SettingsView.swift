@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var store: Store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("haptics") private var haptics = true
+    @AppStorage("festive") private var festive = true
     @AppStorage("reminders") private var reminders = true
     @AppStorage("myName") private var myName = ""
 
@@ -15,13 +16,14 @@ struct SettingsView: View {
                         .textContentType(.givenName)
                 }
                 Section {
+                    Toggle("Feestelijke animaties", isOn: $festive)
                     Toggle("Trillen bij acties", isOn: $haptics)
                     Toggle("Herinneringen", isOn: $reminders)
                         .onChange(of: reminders) { _, on in
                             if on { store.groups.forEach(Reminders.schedule) } else { Reminders.cancelAll() }
                         }
                 } footer: {
-                    Text("Herinneringen komen een week en een dag voor het feest. Ze worden op je telefoon ingepland.")
+                    Text("Feestelijke animaties staan ook uit als 'Verminder beweging' aanstaat in iOS. Herinneringen komen een week en een dag voor het feest.")
                 }
                 Section {
                     Label("Gratis, zonder reclame en zonder account", systemImage: "heart.fill")

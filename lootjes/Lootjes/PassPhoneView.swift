@@ -117,7 +117,7 @@ struct PassPhoneView: View {
         VStack(spacing: 24) {
             Text(person)
                 .font(.title2.weight(.bold))
-            RevealCard(receiverName: receiver, tint: tint, caption: "\(person), jij koopt een cadeau voor") {
+            EnvelopeReveal(receiverName: receiver, caption: "\(person), jij koopt een cadeau voor", season: Season.current()) {
                 seen.insert(person)
             }
             Text("Onthoud de naam goed. Daarna verberg je hem weer.")

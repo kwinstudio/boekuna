@@ -23,6 +23,9 @@ struct OrganizerView: View {
     @State private var confirmDelete = false
     @State private var justDrawn = false
     @State private var passSeen = Set<String>()
+    @State private var drawing = false
+    @State private var drawDone = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var addFocus: Bool
 
     private var saved: SavedGroup? { store.group(groupId) }
@@ -51,6 +54,12 @@ struct OrganizerView: View {
         .task { await load() }
         .refreshable { await load() }
         .toast($toast) { undo?() }
+        .overlay {
+            if drawing {
+                DrawingOverlay(season: Season.of(status?.group.occasion ?? .sinterklaas), done: drawDone)
+                    .transition(.opacity)
+            }
+        }
         .sheet(isPresented: $showRules) {
             if let status { RulesSheet(status: status, tint: tint) { pairs in await setRules(pairs) } }
         }
@@ -150,28 +159,10 @@ struct OrganizerView: View {
     }
 
     private func header(_ s: AdminStatus) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: s.group.occasion.symbol)
-                .font(.title2)
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-                .background(tint, in: RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 4) {
-                if let d = s.group.date {
-                    Text(DayFormat.long(d)).font(.headline)
-                    if let c = DayFormat.countdown(to: d) {
-                        Text("\(s.group.occasion.eventWord.capitalizedFirst) is \(c)").font(.subheadline).foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("Nog geen datum").font(.headline)
-                }
-                if let b = s.group.budgetCents {
-                    Label("Budget \(b.euroText)", systemImage: "eurosign.circle").font(.subheadline).foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-        }
-        .card()
+        FestiveHeader(season: Season.of(s.group.occasion),
+                      title: s.group.occasion == .anders ? s.group.name : s.group.occasion.title,
+                      date: s.group.date, eventWord: s.group.occasion.eventWord,
+                      detail: s.group.budgetCents.map { "Budget \($0.euroText)" })
     }
 
     private func drawnBanner(_ s: AdminStatus) -> some View {
@@ -390,15 +381,29 @@ struct OrganizerView: View {
         guard let token = saved?.adminToken else { return }
         busy = true
         defer { busy = false }
+        let festive = Festive.enabled(reduceMotion: reduceMotion)
+        if festive { drawDone = false; withAnimation(.easeOut(duration: 0.2)) { drawing = true } }
+        let started = Date()
         do {
             let s = try await api.draw(token, redraw: redraw)
+            if festive {
+                // Let the moment breathe a little: at least ~1.4 s of shuffling, then a check.
+                let wait = max(0, 1.4 - Date().timeIntervalSince(started))
+                try? await Task.sleep(for: .seconds(wait))
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { drawDone = true }
+                Haptics.success()
+                try? await Task.sleep(for: .milliseconds(800))
+                withAnimation(.easeOut(duration: 0.25)) { drawing = false }
+            } else {
+                Haptics.success()
+            }
             withAnimation(.spring) {
                 status = s
                 justDrawn = true
             }
             passSeen = []
-            Haptics.success()
         } catch {
+            withAnimation { drawing = false }
             Haptics.warning()
             toast = ToastData(message: error.localizedDescription)
         }
@@ -543,7 +548,10 @@ private struct ProgressChecklist: View {
             HStack(spacing: 10) {
                 Image(systemName: done ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(done ? Color.green : Color.secondary)
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: done)
                 Text(title).font(.subheadline).foregroundStyle(done ? .secondary : .primary)
+                    .contentTransition(.numericText())
             }
             .accessibilityElement(children: .combine)
             .accessibilityValue(done ? "klaar" : "nog niet")
