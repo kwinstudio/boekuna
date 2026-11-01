@@ -236,27 +236,60 @@ struct BudgetChips: View {
     @Binding var budget: Int?
     var tint: Color
     private let options: [Int?] = [nil, 1000, 1500, 2000, 2500, 5000]
+    /// Same limit as the server: whole euros, max € 1000.
+    static let maxEuros = 1000
+    @State private var askCustom = false
+    @State private var customText = ""
+
+    private var isCustom: Bool { budget != nil && !options.contains(budget) }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(options, id: \.self) { o in
-                    Button {
-                        Haptics.tap()
-                        budget = o
-                    } label: {
-                        Text(o.map(\.euroText) ?? "Geen")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .frame(minHeight: 44)
-                            .foregroundStyle(budget == o ? .white : .primary)
-                            .background(budget == o ? tint : Theme.card, in: Capsule())
-                    }
-                    .buttonStyle(PressableStyle())
-                    .accessibilityAddTraits(budget == o ? .isSelected : [])
+                    chip(o.map(\.euroText) ?? "Geen", selected: budget == o) { budget = o }
+                }
+                chip(isCustom ? budget!.euroText : "Ander bedrag", selected: isCustom, icon: isCustom ? "pencil" : "plus") {
+                    customText = isCustom ? String(budget! / 100) : ""
+                    askCustom = true
                 }
             }
         }
+        .alert("Budget per cadeau", isPresented: $askCustom) {
+            TextField("Bijv. 75", text: $customText).keyboardType(.numberPad)
+            Button("Annuleer", role: .cancel) {}
+            Button("Gebruik") {
+                if let e = BudgetChips.euros(from: customText) { budget = e * 100 }
+            }
+        } message: {
+            Text("Hele euro's, maximaal € \(BudgetChips.maxEuros).")
+        }
+    }
+
+    /// "75", "€ 75", "75,00" -> 75. Out of range -> nil.
+    static func euros(from text: String) -> Int? {
+        let digits = text.split(whereSeparator: { $0 == "," || $0 == "." }).first.map { $0.filter(\.isNumber) } ?? ""
+        guard let n = Int(digits), n >= 1, n <= maxEuros else { return nil }
+        return n
+    }
+
+    private func chip(_ title: String, selected: Bool, icon: String? = nil, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 4) {
+                if let icon { Image(systemName: icon).font(.caption.weight(.bold)) }
+                Text(title)
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 44)
+            .foregroundStyle(selected ? .white : .primary)
+            .background(selected ? tint : Theme.card, in: Capsule())
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

@@ -285,3 +285,13 @@ final class ShopTests: XCTestCase {
     }
 }
 
+final class BudgetTests: XCTestCase {
+    func testCustomBudget() {
+        XCTAssertEqual(BudgetChips.euros(from: "75"), 75)
+        XCTAssertEqual(BudgetChips.euros(from: "€ 75,00"), 75)
+        XCTAssertEqual(BudgetChips.euros(from: "1000"), 1000)
+        XCTAssertNil(BudgetChips.euros(from: "1001"))
+        XCTAssertNil(BudgetChips.euros(from: "0"))
+        XCTAssertNil(BudgetChips.euros(from: "veel"))
+    }
+}
