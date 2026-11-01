@@ -443,23 +443,7 @@ struct ChatView: View {
                                 .font(.subheadline).foregroundStyle(.secondary).padding(.top, 30)
                         }
                         ForEach(messages) { m in
-                            HStack {
-                                if m.fromMe { Spacer(minLength: 50) }
-                                Text(m.body)
-                                    .padding(.horizontal, 14).padding(.vertical, 10)
-                                    .foregroundStyle(m.fromMe ? .white : .primary)
-                                    .background(m.fromMe ? tint : Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                    .contextMenu {
-                                        if !m.fromMe {
-                                            Button { reportTarget = m } label: { Label("Meld dit bericht", systemImage: "flag") }
-                                        }
-                                    }
-                                if !m.fromMe { Spacer(minLength: 50) }
-                            }
-                            .id(m.id)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel((m.fromMe ? "Jij: " : "\(otherName.capitalizedFirst): ") + m.body)
-                            .accessibilityAction(named: "Meld dit bericht") { if !m.fromMe { reportTarget = m } }
+                            bubble(m)
                         }
                         if messages.contains(where: { !$0.fromMe }) {
                             Text("Een vervelend bericht? Houd het ingedrukt om het te melden.")
@@ -473,37 +457,7 @@ struct ChatView: View {
                 .onChange(of: messages.count) { _, _ in withAnimation { proxy.scrollTo(messages.last?.id, anchor: .bottom) } }
             }
             .background(Theme.paper.ignoresSafeArea())
-            .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 6) {
-                    if isBlocked {
-                        HStack {
-                            Label("Je krijgt geen berichten meer van \(otherName).", systemImage: "hand.raised.fill")
-                                .font(.footnote).foregroundStyle(.secondary)
-                            Spacer()
-                            Button("Deblokkeer") { Task { await setBlocked(false) } }.font(.footnote.weight(.semibold))
-                                .frame(minHeight: 44)
-                        }
-                    }
-                    if let error { Text(error).font(.footnote).foregroundStyle(.red) }
-                    HStack(alignment: .bottom, spacing: 8) {
-                        TextField(thread == .myLootje ? "Vraag iets aan \(otherName)" : "Antwoord", text: $draft, axis: .vertical)
-                            .lineLimit(1...4)
-                            .padding(.horizontal, 14).padding(.vertical, 10)
-                            .background(Theme.card, in: RoundedRectangle(cornerRadius: 20))
-                        Button {
-                            Task { await send() }
-                        } label: {
-                            Image(systemName: "arrow.up.circle.fill").font(.system(size: 34)).foregroundStyle(tint)
-                                .frame(width: 44, height: 44)
-                        }
-                        .disabled(draft.trimmed.isEmpty || sending)
-                        .accessibilityLabel("Verstuur")
-                    }
-                }
-                .readableWidth()
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.bar)
-            }
+            .safeAreaInset(edge: .bottom) { inputBar }
             .navigationTitle(thread == .myLootje ? "Vraag aan \(otherName)" : "Je \(data.group.occasion.giverWord)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -567,6 +521,67 @@ struct ChatView: View {
     }
 
     private var messages: [ChatMessage] { data.messages.filter { $0.thread == thread } + local }
+
+    private var inputBar: some View {
+            VStack(spacing: 6) {
+                if isBlocked {
+                    HStack {
+                        Label("Je krijgt geen berichten meer van \(otherName).", systemImage: "hand.raised.fill")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Deblokkeer") { Task { await setBlocked(false) } }.font(.footnote.weight(.semibold))
+                            .frame(minHeight: 44)
+                    }
+                }
+                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                HStack(alignment: .bottom, spacing: 8) {
+                    TextField(thread == .myLootje ? "Vraag iets aan \(otherName)" : "Antwoord", text: $draft, axis: .vertical)
+                        .lineLimit(1...4)
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 20))
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill").font(.system(size: 34)).foregroundStyle(tint)
+                            .frame(width: 44, height: 44)
+                    }
+                    .disabled(draft.trimmed.isEmpty || sending)
+                    .accessibilityLabel("Verstuur")
+                }
+            }
+            .readableWidth()
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(.bar)
+    }
+
+    private func label(_ m: ChatMessage) -> String {
+        let who: String = m.fromMe ? "Jij" : otherName.capitalizedFirst
+        return who + ": " + m.body
+    }
+
+    @ViewBuilder
+    private func bubble(_ m: ChatMessage) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let text = Text(m.body)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .foregroundStyle(m.fromMe ? Color.white : Color.primary)
+            .background(m.fromMe ? tint : Theme.card, in: shape)
+        HStack {
+            if m.fromMe {
+                Spacer(minLength: 50)
+                text
+            } else {
+                text.contextMenu {
+                    Button { reportTarget = m } label: { Label("Meld dit bericht", systemImage: "flag") }
+                }
+                Spacer(minLength: 50)
+            }
+        }
+        .id(m.id)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label(m))
+        .accessibilityAction(named: "Meld dit bericht") { if !m.fromMe { reportTarget = m } }
+    }
 
     private func send() async {
         let text = draft.trimmed
