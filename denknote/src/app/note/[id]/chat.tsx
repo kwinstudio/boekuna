@@ -74,13 +74,13 @@ export default function Chat() {
 
   async function send(preset?: ChatPreset) {
     if (!id || pending) return;
-    const text = draft.trim();
+    const text = preset ? '' : draft.trim();
     if (!text && !preset) return;
     setError(null);
     const visible = text || CHAT_PRESETS[preset!].label;
     const temp: ChatMessage = { id: 'pending', note_id: id, role: 'user', content: visible, created_at: new Date().toISOString() };
     setPending(temp);
-    setDraft('');
+    if (!preset) setDraft('');
     try {
       const ok = await flush();
       const n = getState().notes[id];

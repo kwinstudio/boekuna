@@ -124,3 +124,18 @@ test('datumweergave', () => {
   assert.equal(formatWhen(new Date(2026, 9, 31, 22, 0).getTime(), now), 'Gisteren 22:00');
   assert.equal(formatWhen(new Date(2026, 9, 3).getTime(), now), '3 okt');
 });
+
+test('race: ophalen dat tegelijk met een push liep, overschrijft de nieuwere verstuurde tekst niet', () => {
+  // Push is klaar (v6, schoon); de pull had nog de oude rij v5.
+  const pushed = { ...toLocal(server(ID1, { content: 'offline getypt', content_version: 6 })) };
+  const merged = mergeServerNotes({ [ID1]: pushed }, [server(ID1, { content: 'oud', content_version: 5 })], new Set());
+  assert.equal(merged[ID1].content, 'offline getypt');
+  assert.equal(merged[ID1].content_version, 6);
+});
+
+test('vuile notitie houdt de hoogste bekende versie', () => {
+  const l = editLocal(toLocal(server(ID1, { content_version: 6 })), { content: 'nieuw' });
+  const merged = mergeServerNotes({ [ID1]: l }, [server(ID1, { content_version: 5 })], new Set());
+  assert.equal(merged[ID1].content_version, 6);
+  assert.equal(merged[ID1].content, 'nieuw');
+});

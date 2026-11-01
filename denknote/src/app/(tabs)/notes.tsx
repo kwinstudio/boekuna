@@ -70,8 +70,8 @@ export default function Notes() {
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const notes = useMemo(() => searchNotes(Object.values(notesMap).filter((n) => !isBlank(n)), query), [notesMap, query]);
-  const total = useMemo(() => Object.values(notesMap).filter((n) => !isBlank(n)).length, [notesMap]);
+  const notes = useMemo(() => searchNotes(Object.values(notesMap).filter((n) => n.synced || !isBlank(n)), query), [notesMap, query]);
+  const total = useMemo(() => Object.values(notesMap).filter((n) => n.synced || !isBlank(n)).length, [notesMap]);
 
   const newNote = () => {
     tap();

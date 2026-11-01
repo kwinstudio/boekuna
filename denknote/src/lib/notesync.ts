@@ -59,9 +59,12 @@ export function mergeServerNotes(
     seen.add(s.id);
     if (pendingDeletes.has(s.id)) continue;
     const l = local[s.id];
-    if (l && l.dirty) {
+    if (l && !l.dirty && l.content_version > s.content_version) {
+      out[s.id] = l; // serverrij is ouder dan wat hier al verstuurd is (ophalen en versturen liepen tegelijk)
+    } else if (l && l.dirty) {
       out[s.id] = {
         ...s,
+        content_version: Math.max(s.content_version, l.content_version),
         title: l.title,
         content: l.content,
         ai_mode: l.ai_mode,

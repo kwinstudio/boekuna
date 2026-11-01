@@ -235,13 +235,14 @@ export function deleteNote(id: string) {
 /** Lege, nooit verstuurde notitie opruimen (bijv. bij terugnavigeren). */
 export function discardIfBlank(id: string) {
   const n = state.notes[id];
-  if (n && isBlank(n)) deleteNote(id);
+  if (n && !n.synced && isBlank(n)) deleteNote(id);
 }
 
 // ── Push-lus ────────────────────────────────────────────────────────────────
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let pushing: Promise<boolean> | null = null;
 let attempt = 0;
+let resetting = false;
 const embedQueue = new Set<string>();
 let embedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -272,6 +273,7 @@ async function pushOne(n: LocalNote): Promise<void> {
     row = (data as ServerNote | null) ?? null;
   }
   if (!row) {
+    if (!state.notes[n.id] || resetting) return; // intussen lokaal verwijderd: niet opnieuw aanmaken
     // Nieuw (of elders verwijderd): aanmaken met de lokale id.
     const { data, error } = await supabase.from('dn_notes').insert({ id: n.id, ...payload }).select(NOTE_COLUMNS).single();
     if (error && error.code === '23505') {
@@ -286,15 +288,13 @@ async function pushOne(n: LocalNote): Promise<void> {
   }
   const cur = state.notes[n.id];
   if (!cur || !row) return; // tussentijds lokaal verwijderd
-  const contentChanged = !cur.synced || row.content_version !== cur.content_version;
   set((s) => ({ notes: { ...s.notes, [n.id]: applyPushResult(s.notes[n.id] ?? cur, sentRev, row!) } }));
-  if (contentChanged) queueEmbedding(n.id);
 }
 
 async function doPush(): Promise<boolean> {
   const uid = state.userId;
-  if (!uid) return false;
-  const dirty = Object.values(state.notes).filter((n) => n.dirty && !isBlank(n));
+  if (!uid || resetting) return false;
+  const dirty = Object.values(state.notes).filter((n) => n.dirty && (n.synced || !isBlank(n)));
   const deletes = [...state.pendingDeletes];
   if (!dirty.length && !deletes.length) {
     if (state.sync !== 'idle') set({ sync: 'idle' });
@@ -314,7 +314,7 @@ async function doPush(): Promise<boolean> {
     attempt = 0;
     set({ sync: 'idle', lastSyncedAt: Date.now() });
     persistSoon();
-    if (Object.values(state.notes).some((n) => n.dirty && !isBlank(n))) schedulePush();
+    if (Object.values(state.notes).some((n) => n.dirty && (n.synced || !isBlank(n)))) schedulePush();
     return true;
   } catch (e) {
     set({ sync: isNetworkError(e) ? 'offline' : 'error' });
@@ -325,7 +325,8 @@ async function doPush(): Promise<boolean> {
 }
 
 // ── Embeddings (alleen met toestemming) ─────────────────────────────────────
-function queueEmbedding(id: string) {
+/** Embedding verversen (na het verlaten van de editor); de server slaat over als de inhoud niet is gewijzigd. */
+export function queueEmbedding(id: string) {
   if (!state.profile.allow_related) return;
   embedQueue.add(id);
   if (embedTimer) clearTimeout(embedTimer);
@@ -366,6 +367,10 @@ export async function updateProfile(patch: Partial<Profile>): Promise<boolean> {
       return false;
     }
   }
+  if (patch.allow_related === false) {
+    embedQueue.clear();
+    supabase.functions.invoke('dn-refresh-note-embedding', { body: { purge: true } }).catch(() => {});
+  }
   if (patch.allow_related) {
     // Bestaande notities alsnog indexeren voor verbanden.
     Object.values(state.notes)
@@ -391,6 +396,19 @@ export async function signOut() {
 export async function deleteMyData(): Promise<boolean> {
   const uid = state.userId;
   if (!uid) return false;
+  resetting = true;
+  try {
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = null;
+    embedQueue.clear();
+    if (pushing) await pushing.catch(() => {});
+    return await wipe(uid);
+  } finally {
+    resetting = false;
+  }
+}
+
+async function wipe(uid: string): Promise<boolean> {
   const tasks = await supabase.from('dn_tasks').delete().eq('user_id', uid);
   if (tasks.error) return false;
   const notes = await supabase.from('dn_notes').delete().eq('user_id', uid);

@@ -1,12 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isMeaningfulChange, noteText } from '../../../../supabase/functions/_shared/logic';
 import { Banner, Button, Card, FadeIn, IconButton, MODE_META, Segmented, Thinking, tap, Txt } from '../../../components/ui';
 import { analyzeNote, ApiError, createTask, dismissSuggestionPart, latestSuggestion } from '../../../lib/api';
-import { deleteNote, discardIfBlank, flush, getState, markAnalyzedLocal, setNoteMode, updateNote, useStore } from '../../../lib/store';
+import { deleteNote, discardIfBlank, flush, getState, markAnalyzedLocal, queueEmbedding, setNoteMode, updateNote, useStore } from '../../../lib/store';
 import { radius, space, type as t, useColors } from '../../../lib/theme';
 import type { AiMode, Suggestion } from '../../../lib/types';
 
@@ -40,6 +40,7 @@ export default function NoteEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const note = useStore((s) => (id ? s.notes[id] : undefined));
   const notes = useStore((s) => s.notes);
+  const allowRelated = useStore((s) => s.profile.allow_related);
   const insets = useSafeAreaInsets();
   const c = useColors();
   const contentRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -66,15 +67,16 @@ export default function NoteEditor() {
   }, [id, synced]);
 
   // Bij verlaten: lege notitie opruimen en direct opslaan.
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        if (!id) return;
-        discardIfBlank(id);
-        flush().catch(() => {});
-      };
-    }, [id]),
-  );
+  // (Bij openen van de chat blijft dit scherm bestaan; pas bij echt verlaten wordt dit uitgevoerd.)
+  useEffect(() => {
+    return () => {
+      if (!id) return;
+      discardIfBlank(id);
+      flush()
+        .then(() => queueEmbedding(id))
+        .catch(() => {});
+    };
+  }, [id]);
 
   const runAnalysis = useCallback(
     async (trigger: 'done' | 'manual') => {
@@ -126,7 +128,7 @@ export default function NoteEditor() {
   const mode: AiMode = note.ai_mode;
   const showQuestion = !!suggestion && !suggestion.dismissed && !!suggestion.question && !suggestion.question_dismissed;
   const showAction = !!suggestion && !suggestion.dismissed && !!suggestion.proposed_action && !suggestion.action_dismissed;
-  const related = (suggestion && !suggestion.dismissed ? suggestion.related_note_ids : [])
+  const related = (allowRelated && suggestion && !suggestion.dismissed ? suggestion.related_note_ids : [])
     .map((rid) => notes[rid])
     .filter((n): n is NonNullable<typeof n> => !!n);
   const outdated = !!suggestion && suggestion.content_version < note.content_version;
