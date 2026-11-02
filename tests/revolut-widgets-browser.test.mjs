@@ -1,5 +1,5 @@
 // Premium zoals Revolut (Kwin 2026-10-23), phone only: the overview blocks are widgets you switch on or off and
-// reorder in a sheet, and a Thema sheet sets light/dark plus the colour of the band. Desktop stays as it was.
+// reorder in a sheet. Since 2026-11-02 there is one fixed theme (Diep groen): no Thema sheet. Desktop stays as it was.
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -48,8 +48,8 @@ try{
   const {context,page}=await openApp(390,844);
   // 1. The overview opens exactly as before: the five default widgets, in the R1D order.
   assert.deepEqual(await page.locator('#content .r1d-bento .r1d-w').evaluateAll(els=>els.map(e=>e.dataset.widget)),['omzet','kosten','open','vrij','recent']);
-  assert.equal(await page.locator('#content .r1d-custom-btn').count(),2,'Widgets and Thema pills under the blocks');
-  assert.equal(await text(page.locator('#content .r1d-custom')),'Widgets Thema');
+  assert.equal(await page.locator('#content .r1d-custom-btn').count(),1,'only the Widgets pill under the blocks (one fixed theme since 2026-11-02)');
+  assert.equal(await text(page.locator('#content .r1d-custom')),'Widgets');
   // The hours pill stays while Uren is not a widget.
   assert.equal(await text(page.locator('#content .r1d-hours')),'6 / 1.225 uur');
 
@@ -96,38 +96,19 @@ try{
   assert.ok(await page.locator('#content .r1d-w[data-widget="open"]').evaluate(el=>el.classList.contains('r1d-w-wide')),'a small block alone on its row fills the row');
   await page.evaluate(()=>{setPhoneWidgets(['uren','omzet','open','vrij','recent']);render()});
 
-  // 4. Thema sheet: light/dark/auto plus the band colour, live and saved on this device and on the account.
-  await page.locator('#content .r1d-custom-btn',{hasText:'Thema'}).click();
-  const theme=page.locator('#modalRoot .modal.theme-sheet');
-  await theme.waitFor();
-  assert.equal(await theme.locator('.r1d-swatch').count(),6);
-  assert.equal(await text(theme.locator('.r1d-swatch.is-on')),'Groen');
-  await theme.locator('.r1d-swatch[data-band="nacht"]').click();
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'nacht');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-band')),'nacht');
-  assert.equal(await page.evaluate(()=>state.meta.band),'nacht');
-  assert.equal(await text(theme.locator('.r1d-swatch.is-on')),'Nacht');
-  const bandTop=await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).getPropertyValue('--r1d-top').trim());
-  assert.equal(bandTop,'#0E1013');
-  await theme.locator('.r1d-segbtn',{hasText:'Donker'}).click();
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'dark');
-  await theme.locator('.r1d-segbtn',{hasText:'Automatisch'}).click();
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),'light');
-  await theme.locator('.r1d-swatch[data-band="groen"]').click();
-  assert.equal(await page.evaluate(()=>'band' in document.documentElement.dataset),false,'Groen is the default and needs no attribute');
-  await page.evaluate(()=>closeModal());
-  // 5. The choice follows the account to the next device: the account value wins at the next render.
-  await page.evaluate(()=>{localStorage.removeItem('boekuna-band');state.meta.band='oceaan';render()});
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'oceaan');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-band')),'oceaan');
-  // Instellingen > App shows the same colour choice.
+  // 4. One theme (Kwin 2026-11-02, "kies gewoon één thema"): no Thema pill or sheet, no band colours, no Sfeer photos.
+  assert.equal(await page.evaluate(()=>typeof openThemeSheet+'|'+typeof setPhoneBand+'|'+typeof setPhoneSfeer),'undefined|undefined|undefined');
+  assert.equal(await page.evaluate(()=>'band' in document.documentElement.dataset||'sfeer' in document.documentElement.dataset),false);
+  // An old choice on the account or this device paints nothing any more.
+  await page.evaluate(()=>{localStorage.setItem('boekuna-band','oceaan');state.meta.band='oceaan';state.meta.sfeer='marmer';render()});
+  assert.equal(await page.evaluate(()=>'band' in document.documentElement.dataset||'sfeer' in document.documentElement.dataset),false);
+  assert.equal(await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).getPropertyValue('--r1d-top').trim()),'#0F2A1A','Diep groen everywhere');
+  // Instellingen > App keeps only Weergave (Automatisch, Licht, Donker): no colour or photo choice.
   await page.evaluate(()=>navigate('settings'));
   await page.locator('.settings-nav-item[data-settings-open="app"]').click();
-  await page.locator('.settings-band-option.is-on').waitFor();
-  assert.equal(await text(page.locator('.settings-band-option.is-on')),'Oceaan');
-  await page.locator('.settings-band-option[data-band-choice="smaragd"]').click();
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.band),'smaragd');
-  assert.equal(await text(page.locator('.settings-band-option.is-on')),'Smaragd');
+  await page.locator('#settings-panel-app .settings-theme').waitFor();
+  assert.equal(await page.locator('.settings-band,.settings-sfeer,.settings-band-option,.settings-sfeer-option').count(),0);
+  assert.equal(await text(page.locator('#settings-panel-app .settings-theme legend')),'Weergave');
   // 7. Round 2 (Kwin 2026-10-23 'fix'): one logic on every band page, no second button with the same name.
   assert.ok(generated.includes('fallbackOnBody:true')&&generated.includes('touchStartThreshold:8'),'drag follows the finger from <body> and tolerates a wobble while holding');
   await page.evaluate(()=>navigate('vat'));
@@ -145,62 +126,22 @@ try{
   assert.match(await text(page.locator('#content .r1d-hero .r1d-story-hero .report-story-amount')),/^€/,'Rapportages total sits in the band');
   assert.equal(await page.locator('#content .report-story .report-story-amount').count(),0);
 
-  // 8. Round 3 (Kwin 2026-10-24 'B sfeer'): the accent follows the band colour, and a photo can sit behind the overview band.
+  // 8. The one theme: the green accent on every button, the open tab white on the glass bar, the green gradient behind every page.
   const rgb=h=>'rgb('+[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)).join(', ')+')';
-  await page.evaluate(()=>{setPhoneBand('groen');setPhoneSfeer('geen');navigate('documents')});
+  await page.evaluate(()=>navigate('documents'));
   const primary=page.locator('#content .btn.primary').first();
   // The pointer rests where the last tap was; keep it off the button so its hover colour does not count.
   await page.mouse.move(1,1);
   // Buttons animate their colour, so each check waits for the transition to land.
   const settles=async(loc,prop,value,msg)=>{const el=await loc.elementHandle();try{await page.waitForFunction(([e,p,v])=>getComputedStyle(e)[p]===v,[el,prop,value],{timeout:4000})}catch(e){}assert.equal(await loc.evaluate((e,p)=>getComputedStyle(e)[p],prop),value,msg)};
-  await settles(primary,'backgroundColor',rgb('#63D471'),'Groen keeps the green primary button');
-  await page.evaluate(()=>setPhoneBand('oceaan'));
-  await settles(primary,'backgroundColor',rgb('#1D5FB8'),'Oceaan: the primary button takes the band accent');
-  await settles(primary,'color',rgb('#FFFFFF'),'white text on the accent');
-  // Kwin 2026-10-26 (roast room V1): the bottom bar is a glass pill in the band colour, so the open tab is white in every band.
+  await settles(primary,'backgroundColor',rgb('#63D471'),'the green primary button');
   await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#FFFFFF'),'the active tab is white on the glass bar');
-  await page.evaluate(()=>BoekunaTheme.set('dark'));
-  await settles(primary,'backgroundColor',rgb('#6FA3EE'),'Donker: a lighter accent');
-  await settles(primary,'color',rgb('#10150F'),'dark ink on the light accent');
-  await page.evaluate(()=>{BoekunaTheme.set('light');setPhoneBand('groen');navigate('dashboard')});
-  await page.locator('#content .r1d-custom-btn',{hasText:'Thema'}).click();
-  const theme2=page.locator('#modalRoot .modal.theme-sheet');
-  await theme2.waitFor();
-  assert.equal(await theme2.locator('.r1d-sfeer-btn').count(),5,'Geen plus four photos');
-  assert.equal(await text(theme2.locator('.r1d-sfeer-btn.is-on')),'Geen');
-  await theme2.locator('.r1d-sfeer-btn[data-sfeer="noorderlicht"]').click();
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.sfeer),'noorderlicht');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-sfeer')),'noorderlicht');
-  assert.equal(await page.evaluate(()=>state.meta.sfeer),'noorderlicht');
-  assert.equal(await text(theme2.locator('.r1d-sfeer-btn.is-on')),'Poollicht');
-  await page.evaluate(()=>closeModal());
-  // Kwin 2026-10-24 ("over heel de scherm"): the photo is the whole screen, fixed behind the page, on every page.
   const canvas=()=>page.evaluate(()=>getComputedStyle(document.body,'::before').backgroundImage);
-  assert.match(await canvas(),/sfeer-noorderlicht\.webp/,'the whole screen shows the photo');
-  assert.equal(await page.evaluate(()=>getComputedStyle(document.body,'::before').position),'fixed','the photo stays put while the page scrolls');
-  assert.equal(await page.locator('#content>.r1d-hero').evaluate(el=>getComputedStyle(el).backgroundImage),'none','the band itself is see-through');
-  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','the top bar lets the photo through');
-  // Kwin's iPhone (2026-10-24): with a photo the round + stayed hidden under the bottom bar; and the strip behind the clock takes the top colour of the photo.
-  assert.ok(await page.evaluate(()=>{const b=document.getElementById('quickNew'),r=b.getBoundingClientRect();return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}),'the round + is on top with a photo');
-  assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),rgb('#0F3E37'),'the page top colour (the iPhone strip) matches the top of the photo');
-  const barH=await page.evaluate(()=>document.querySelector('#mainApp .topbar').getBoundingClientRect().height);
-  assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--r1d-topbar-h').trim()),barH+'px','look.js measured the top bar');
-  await page.evaluate(()=>navigate('vat'));
-  assert.match(await canvas(),/sfeer-noorderlicht\.webp/,'other pages share the same background');
-  assert.equal(await page.locator('#mainApp .topbar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)','and their top bar is see-through too');
-  // Instellingen > App offers the same choice, and the account value wins on the next device.
-  await page.evaluate(()=>navigate('settings'));
-  await page.locator('.settings-nav-item[data-settings-open="app"]').click();
-  await page.locator('.settings-sfeer-option.is-on').waitFor();
-  assert.equal(await text(page.locator('.settings-sfeer-option.is-on')),'Poollicht');
-  await page.locator('.settings-sfeer-option[data-sfeer-choice="geen"]').click();
-  assert.equal(await page.evaluate(()=>'sfeer' in document.documentElement.dataset),false,'Geen is the default and needs no attribute');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('boekuna-sfeer')),'geen');
-  await page.evaluate(()=>{localStorage.removeItem('boekuna-sfeer');state.meta.sfeer='marmer';render()});
-  assert.equal(await page.evaluate(()=>document.documentElement.dataset.sfeer),'marmer');
-  assert.ok(generated.includes("localStorage.getItem('boekuna-sfeer')"),'the boot script sets the photo before the first paint');
-  for(const f of ['noorderlicht','nachthemel','zonsondergang','marmer'])assert.ok(fs.statSync('dist/app/assets/sfeer-'+f+'.webp').size<200000,'sfeer-'+f+'.webp stays small');
-  await page.evaluate(()=>{setPhoneSfeer('geen');setPhoneBand('groen')});
+  assert.match(await canvas(),/linear-gradient/,'the green gradient is the whole screen');
+  assert.doesNotMatch(await canvas(),/sfeer-/,'no photo');
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.body,'::before').position),'fixed','the colour stays put while the page scrolls');
+  assert.ok(!generated.includes("localStorage.getItem('boekuna-sfeer')")&&!generated.includes("localStorage.getItem('boekuna-band')"),'the boot script no longer paints a band or photo');
+  assert.ok(!fs.existsSync('dist/app/assets/sfeer-marmer.webp'),'the Sfeer photos are no longer shipped');
   await context.close();
 
   // 6. Desktop is untouched: no widgets grid, no pills, no band attribute effect on the dashboard.
@@ -211,7 +152,7 @@ try{
   await desktop.context.close();
 
   assert.deepEqual(errors,[],'No page errors');
-  console.log('Revolut widgets and theme browser test passed ('+browserName+')');
+  console.log('Revolut widgets and one-theme browser test passed ('+browserName+')');
 }finally{
   await browser.close();
   server.close();

@@ -197,31 +197,15 @@
   function themeLabel(){var p=themePreference();return (THEME_OPTIONS.filter(function(o){return o.value===p})[0]||THEME_OPTIONS[0]).label}
   function themeBlock(){
     var current=themePreference();
-    return '<fieldset class="settings-center-fieldset settings-theme"><legend>Thema</legend><div class="settings-theme-options">'
+    return '<fieldset class="settings-center-fieldset settings-theme"><legend>Weergave</legend><div class="settings-theme-options">'
       +THEME_OPTIONS.map(function(o){
         var id='set-theme-'+o.value;
         return '<label class="settings-theme-option" for="'+id+'"><input type="radio" name="theme" id="'+id+'" value="'+o.value+'" data-theme-choice'+(o.value===current?' checked':'')+'>'
           +'<span class="settings-theme-swatch settings-theme-swatch-'+o.value+'" aria-hidden="true"></span>'
           +'<span class="settings-theme-copy"><strong>'+esc(o.label)+'</strong>'+(o.help?hint(o.help):'')+'</span></label>';
       }).join('')
-      +'</div></fieldset>'+bandBlock();
-  }
-  // Kwin 2026-10-23 ("thema zoals Revolut"): the colour of the band on the phone, the same choice as in the Thema sheet.
-  function bandBlock(){
-    if(typeof PHONE_BANDS==='undefined'||typeof phoneBand!=='function')return '';
-    var current=phoneBand();
-    return '<fieldset class="settings-center-fieldset settings-band"><legend>Kleur op je telefoon</legend><div class="settings-band-options">'
-      +PHONE_BANDS.map(function(b){return '<button type="button" class="settings-band-option'+(b[0]===current?' is-on':'')+'" data-band-choice="'+b[0]+'" style="--a:'+b[2]+';--b:'+b[3]+'" aria-pressed="'+(b[0]===current)+'"><span class="settings-band-chip" aria-hidden="true"></span><span>'+esc(b[1])+'</span></button>'}).join('')
-      +'</div></fieldset>'+sfeerBlock();
-  }
-  // Kwin 2026-10-24 ("B sfeer"): the photo behind the overview band, the same choice as in the Thema sheet.
-  function sfeerBlock(){
-    if(typeof PHONE_SFEER==='undefined'||typeof sfeerOptionsHtml!=='function')return '';
-    return '<fieldset class="settings-center-fieldset settings-sfeer"><legend>Sfeer op het overzicht</legend><div class="settings-sfeer-options">'
-      +sfeerOptionsHtml('settings-sfeer-option','data-sfeer-choice',phoneSfeer(),false)
       +'</div></fieldset>';
   }
-
   function appPanel(){
     var current=preferredStartPage();
     var select='<div class="field"><label for="set-startPage">Openen op</label><select id="set-startPage" data-settings-pref="startPage">'
@@ -342,7 +326,7 @@
       {group:'Je bedrijf',key:'invoices',title:'Facturen',desc:'Nummering, betaaltermijn en layout',status:Number(c.paymentDays||14)+' dagen',render:invoicesPanel},
       {group:'Je bedrijf',key:'email',title:'E-mail & delen',desc:'Het bericht bij je facturen',status:'',render:emailPanel},
       {group:'App',key:'notifications',title:'Meldingen',desc:'Wat je ziet onder "Nog te doen"',status:on===ATTENTION_TYPES.length?'':on+' van '+ATTENTION_TYPES.length+' aan',render:notificationsPanel},
-      {group:'App',key:'app',title:'App & weergave',desc:'Thema, startpagina en extra uitleg',status:themeLabel(),render:appPanel},
+      {group:'App',key:'app',title:'App & weergave',desc:'Weergave, startpagina en extra uitleg',status:themeLabel(),render:appPanel},
       {group:'Account',key:'security',title:'Beveiliging & privacy',desc:'Tweestapsverificatie en wachtwoord',status:mfaEnabled===true?'Tweestap aan':mfaEnabled===false?'Tweestap uit':'',tone:mfaEnabled===false?'warn':'',render:securityPanel},
       {group:'Account',key:'data',title:'Data & export',desc:'Exporteren, back-up en herstel',status:'',render:dataPanel},
       {group:'Account',key:'billing',title:'Abonnement & gebruik',desc:'Je plan en documentchecks',status:billingStatus(),render:billingPanel},
@@ -542,10 +526,6 @@
     var el=root();if(!el||el.dataset.wired)return;
     el.dataset.wired='1';
     el.addEventListener('click',function(event){
-      var t0=event.target,bandBtn=t0.closest&&t0.closest('[data-band-choice]');
-      if(bandBtn){setPhoneBand(bandBtn.getAttribute('data-band-choice'));bandBtn.parentElement.querySelectorAll('[data-band-choice]').forEach(function(b){var on=b===bandBtn;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',on)});toast('Opgeslagen');return}
-      var sfeerBtn=t0.closest&&t0.closest('[data-sfeer-choice]');
-      if(sfeerBtn){setPhoneSfeer(sfeerBtn.getAttribute('data-sfeer-choice'));sfeerBtn.parentElement.querySelectorAll('[data-sfeer-choice]').forEach(function(b){var on=b===sfeerBtn;b.classList.toggle('is-on',on);b.setAttribute('aria-pressed',on)});toast('Opgeslagen');return}
       var opener=event.target.closest('[data-settings-open]');
       if(opener&&el.contains(opener)){event.preventDefault();open(opener.getAttribute('data-settings-open'));return}
       if(event.target.closest('[data-settings-back]')){event.preventDefault();back();return}

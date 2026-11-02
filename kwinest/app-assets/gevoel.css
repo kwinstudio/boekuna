@@ -8,7 +8,6 @@
 #mainApp .dashboard-start-step.is-given .dashboard-start-row{cursor:default}
 #mainApp .dashboard-start-step.is-given .dashboard-start-num{background:#E5F5E8;color:#2F7D3B}
 html[data-theme="dark"] #mainApp .dashboard-start-step.is-given .dashboard-start-num{background:#1E3324;color:#7FDB8B}
-html[data-band] #mainApp .dashboard-start-step.is-given .dashboard-start-num{background:var(--r1d-accent-soft,#E5F5E8);color:var(--r1d-accent,#2F7D3B)}
 
 /* 1 + 2. Scan: the steps appear one by one, the bar has stripes that run backwards. */
 html.boekuna-gevoel .gv-scan{margin-top:10px}

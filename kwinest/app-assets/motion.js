@@ -252,7 +252,12 @@
     var badges=badgeRows(content);
     var rows=snapshotRows(content);
     var before=rowsByPage[now];
-    if(entered){
+    // A swipe between tabs (vegen.js) already moved the screens with the finger; a second slide-in on top would stutter.
+    var swiped=false;try{swiped=Date.now()-(window.__boekunaSwipeNav||0)<500}catch(e){}
+    if(entered&&swiped){
+      clearTimeout(enterTimer);
+      content.classList.remove('motion-enter','motion-dir-right','motion-dir-left');
+    }else if(entered){
       content.classList.remove('motion-enter','motion-dir-right','motion-dir-left');
       void content.offsetWidth;
       var dir=direction(from,now);
