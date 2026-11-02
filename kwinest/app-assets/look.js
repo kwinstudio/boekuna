@@ -388,24 +388,12 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
 
-/* 25. Band colour (Kwin 2026-10-23, "thema zoals Revolut"): this device's last choice goes on <html data-band>
-   before the first render; the account choice (state.meta.band) wins once the administration is loaded. */
+/* 25. One theme (Kwin 2026-11-02, "kies gewoon één thema"): the band colours and Sfeer photos are gone, every phone shows Diep groen.
+   A choice saved earlier on this device is cleared, so nothing paints over the green. */
 (function(){
   'use strict';
-  // The same for the Sfeer photo behind the overview band (Kwin 2026-10-24): key boekuna-sfeer, attribute data-sfeer, 'geen' = none.
-  var CHOICES=[['boekuna-band','band','groen'],['boekuna-sfeer','sfeer','geen']];
-  function readLocal(key){try{return localStorage.getItem(key)||''}catch(e){return ''}}
-  function apply(attr,id,none){if(!id||id===none)delete document.documentElement.dataset[attr];else document.documentElement.dataset[attr]=id}
-  CHOICES.forEach(function(c){apply(c[1],readLocal(c[0]),c[2])});
-  function sync(){
-    CHOICES.forEach(function(c){try{var v=typeof state!=='undefined'&&state&&state.meta?state.meta[c[1]]:'';if(typeof v==='string'&&v&&v!==readLocal(c[0])){try{localStorage.setItem(c[0],v)}catch(e){}apply(c[1],v,c[2])}}catch(e){}});
-  }
-  // The Sfeer photo runs under the top bar, so the overview band is pulled up by the bar's real height (safe area included).
-  function measureTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar)document.documentElement.style.setProperty('--r1d-topbar-h',bar.offsetHeight+'px')}catch(e){}}
-  window.addEventListener('resize',measureTopbar);window.addEventListener('load',measureTopbar);
-  function watchTopbar(){try{var bar=document.querySelector('#mainApp .topbar');if(bar&&'ResizeObserver' in window)new ResizeObserver(measureTopbar).observe(bar)}catch(e){}measureTopbar()}
-  function install(){watchTopbar();if(typeof render!=='function')return;var original=render;render=function(){sync();var out=original.apply(this,arguments);measureTopbar();return out}}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+  try{localStorage.removeItem('boekuna-band');localStorage.removeItem('boekuna-sfeer')}catch(e){}
+  delete document.documentElement.dataset.band;delete document.documentElement.dataset.sfeer;
 })();
 
 /* 27. Kwin 2026-10-24 (iPhone screenshot): after a tap the menu button got its keyboard ring back when the menu closed.

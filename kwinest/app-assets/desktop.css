@@ -5,11 +5,6 @@
 @media (min-width:821px){
   :root{--r1d-top:#0F2A1A;--r1d-bottom:#1F7A4A;--d-bg:#F2F3F5;--d-card:#FFFFFF;--d-ink:#16191C;--d-muted:#5E6870;--d-hair:#EEF0F2;--d-glass:rgba(255,255,255,.14);--d-glass-hover:rgba(255,255,255,.22);--d-on:#FFFFFF;--d-on-soft:rgba(255,255,255,.78);--d-band-h:280px}
   html[data-theme="dark"]{--r1d-top:#07150D;--r1d-bottom:#17583A;--d-bg:var(--calm-bg,#0F1214);--d-card:var(--dk-surface,#1A1F23);--d-ink:var(--dk-ink,#E9EDEF);--d-muted:var(--dk-muted,#A7B1B8);--d-hair:var(--dk-line,#2E363C)}
-  html[data-band="smaragd"]{--r1d-top:#0B3D2E;--r1d-bottom:#159A72}
-  html[data-band="nacht"]{--r1d-top:#0E1013;--r1d-bottom:#262C33}
-  html[data-band="oceaan"]{--r1d-top:#0B1F3A;--r1d-bottom:#1D5FB8}
-  html[data-band="paars"]{--r1d-top:#231040;--r1d-bottom:#6D3FB8}
-  html[data-band="zand"]{--r1d-top:#3E2F1F;--r1d-bottom:#8C6B43}
 
   /* 1. The band: behind the top bar and the page head, down to the middle of the first row of numbers (desktop.js measures it). */
   html body #mainApp#mainApp,html body #mainApp#mainApp#mainApp #appMain{background:var(--d-bg)!important}

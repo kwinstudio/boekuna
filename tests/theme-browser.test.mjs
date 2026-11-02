@@ -73,7 +73,7 @@ try{
     // Settings: the THEMA choice.
     await page.evaluate(()=>openSettingsSection('app'));
     const legend=await page.locator('#settings-panel-app legend').first().innerText();
-    assert.equal(legend.trim(),'Thema');
+    assert.equal(legend.trim(),'Weergave');
     assert.deepEqual(await page.locator('#settings-panel-app .settings-theme-copy strong').allInnerTexts().then(x=>x.map(s=>s.replace(' ✓','').trim())),['Automatisch','Licht','Donker']);
     assert.match(await page.locator('#settings-panel-app').innerText(),/Volgt de instelling van je apparaat\./);
     assert.equal(await page.locator('#set-theme-system').isChecked(),true,'Automatisch is the default');

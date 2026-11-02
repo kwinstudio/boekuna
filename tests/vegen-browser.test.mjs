@@ -82,6 +82,31 @@ try{
     await swipe(page,'#content',300,-160);
     assert.equal(await now(page),'invoices');
     assert.equal(await page.locator('#mobileBottomNav [data-mobile-page="invoices"]').getAttribute('aria-current'),'page');
+    // Soepeler (Kwin 2026-11-02): the screen sticks to the finger 1:1 and the overview you just left already slides in beside it.
+    {
+      const held=await page.evaluate(async()=>{
+        const el=document.getElementById('content'),y=300;
+        const fire=(tt,x)=>{const touch=new Touch({identifier:7,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent(tt,{bubbles:true,cancelable:true,touches:tt==='touchend'?[]:[touch],targetTouches:tt==='touchend'?[]:[touch],changedTouches:[touch]}))};
+        fire('touchstart',100);
+        for(const x of [112,140,180,220]){await new Promise(r=>setTimeout(r,16));fire('touchmove',x)}
+        const all=[...document.querySelectorAll('#content')],peek=all.find(n=>n.classList.contains('bk-peek'));
+        const out={count:all.length,real:getComputedStyle(el).transform,peekPage:peek?.dataset.page||'',peekLeft:peek?Math.round(peek.getBoundingClientRect().left):null,inert:peek?.hasAttribute('inert')};
+        await new Promise(r=>setTimeout(r,16));fire('touchend',220);
+        return out;
+      });
+      assert.equal(held.count,2,'the kept overview is beside the screen while you swipe');
+      assert.equal(held.peekPage,'dashboard');
+      assert.ok(held.inert,'the kept copy cannot be tapped');
+      assert.match(held.real,/matrix\(1, 0, 0, 1, 108, 0\)/,'the screen follows the finger 1:1 (108 px after deciding at 112): '+held.real);
+      assert.equal(held.peekLeft,108-390,'the overview sits right next to it');
+      await page.waitForTimeout(450);
+      assert.equal(await now(page),'dashboard','let go while still moving: the move finishes');
+      assert.equal(await page.evaluate(()=>document.querySelectorAll('#content').length),1,'the kept copy is gone once the real tab is there');
+      assert.equal(await page.evaluate(()=>document.getElementById('content').style.transform),'');
+      assert.equal(await page.evaluate(()=>document.getElementById('content').classList.contains('motion-enter')),false,'no second slide-in after a swipe');
+      await swipe(page,'#content',300,-160);
+      assert.equal(await now(page),'invoices');
+    }
     // A small slow move is not a swipe.
     await swipe(page,'#content .page-head, #content',300,-40,{steps:8,stepMs:40});
     assert.equal(await now(page),'invoices');

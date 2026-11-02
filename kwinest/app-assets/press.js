@@ -12,7 +12,7 @@
 
   var PRESSABLE='button,[role="button"],a.btn,label.btn,.btn,.nav-item,.mobile-bottom-nav-item,.mobile-card-main,.mobile-card-row,.r1d-recent-row,.settings-center-row,.action-row,.quick-action,.dashboard-attention-item';
   // These already shrink on :active in look.css; a second shrink would be too much.
-  var OWN_PRESS='.r1d-custom-btn,.r1d-wtoggle,.r1d-swatch,.settings-band-option,.r1d-sfeer-btn,.settings-sfeer-option';
+  var OWN_PRESS='.r1d-custom-btn,.r1d-wtoggle';
   var MIN_DOWN=60; // a quick tap still shows the press
   var pressed=null,since=0,touch=false;
 
