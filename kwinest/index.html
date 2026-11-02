@@ -2436,8 +2436,10 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
 <main class="main" id="appMain">
   <header class="topbar">
     <div class="top-left"><button class="mobile-menu" id="mobileMenu" aria-label="Menu openen"><svg class="icon"><use href="#i-menu"/></svg></button><div class="page-title" id="pageTitle">Dashboard</div></div>
-    <div class="top-actions"><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-live="polite" aria-label="Documenten worden verwerkt"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText" aria-hidden="true"></span></button><button class="icon-btn global-search-btn" id="globalSearchButton" type="button" aria-label="Zoeken" onclick="openGlobalSearch()"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></button><button class="btn" id="quickNew" aria-label="Nieuw"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite" onclick="if(['offline','conflict','error'].includes(cloudSyncStatus))retryCloudSave()">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="top-actions"><button id="documentProcessingGlobal" class="document-processing-global hidden" type="button" onclick="openGlobalDocumentProcessingPanel()" aria-haspopup="dialog" aria-live="polite" aria-label="Documenten worden verwerkt"><span class="document-processing-global-spinner" aria-hidden="true"></span><span id="documentProcessingGlobalText" aria-hidden="true"></span></button><button class="icon-btn global-search-btn" id="globalSearchButton" type="button" aria-label="Zoeken" aria-expanded="false" aria-controls="headerSearch" onclick="openHeaderSearch()"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></button><button class="btn" id="quickNew" aria-label="Nieuw"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>Nieuw</span></button><span class="badge good" id="cloudSyncBadge" title="Opslagstatus" role="status" aria-live="polite" onclick="if(['offline','conflict','error'].includes(cloudSyncStatus))retryCloudSave()">Opgeslagen ✓</span><button id="cloudSyncRetry" class="link-btn hidden" type="button" onclick="retryCloudSave()">Opnieuw proberen</button><button class="avatar" id="accountAvatar" onclick="accountMenu()" aria-label="Account">A</button></div>
+    <div class="header-search" id="headerSearch" role="search" hidden><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="headerSearchInput" type="search" autocomplete="off" enterkeyhint="search" aria-label="Zoeken" placeholder="Zoeken"><button type="button" class="header-search-close" id="headerSearchClose" aria-label="Zoeken sluiten" data-list-clear-search>Annuleer</button></div>
   </header>
+  <div class="header-search-panel" id="headerSearchPanel" hidden></div>
   <div class="content" id="content"></div>
 </main>
 </div>
@@ -4037,6 +4039,7 @@ const LIST_PHONE_PLACEHOLDER={invoices:'Zoek factuur of klant',expenses:'Zoek ko
 // Volledige test 18: a short list (under 10 rows, no filter on) gets only its search box; the filter chips appear once there is something to filter.
 const LIST_SOURCE_KEYS={invoices:'invoices',expenses:'expenses',documents:'documents',contacts:'contacts',bank:'transactions',trips:'mileage',services:'services'};
 function listIsFew(name,activeCount){const key=LIST_SOURCE_KEYS[name];if(!key||activeCount)return false;const rows=state[key];return Array.isArray(rows)&&rows.length<10}
+// Kwin 2026-11-02: no search field in the page any more; the magnifier top right opens one search bar in the header (headerSearch).
 function listToolbar(name,extraHtml=''){
   const s=listPageState(name),ui={...(LIST_UI[name]||{}),...(phoneLayout()&&LIST_PHONE_PLACEHOLDER[name]?{placeholder:LIST_PHONE_PLACEHOLDER[name]}:{})},count=activeListFilterCount(name),quick=listQuickFilters(name),fields=listFilterFields(name),sorts=ui.sorts||[];
   const q=String(s.query||''),chips=listFilterChipEntries(name);
@@ -4055,10 +4058,10 @@ function listToolbar(name,extraHtml=''){
     // Meer keeps the rare choices (an own period with Van/Tot) reachable; Wissen clears everything at once.
     const more='<button type="button" class="list-chip-more" data-list-open-filters aria-haspopup="dialog" aria-expanded="false"'+(count?' aria-label="Filters, '+count+' aan"':' aria-label="Meer filters"')+'>Meer'+filterCountHtml(count)+'</button>'+(count?'<button type="button" class="list-clear-filters list-chip-clear" data-list-clear-filters>Wissen</button>':'');
     const chipRow='<div class="list-toolbar-quick list-chip-row" aria-label="Filters">'+(quick?quick.options.map(([value,label])=>'<button type="button" class="filter-btn '+(String(s.filters?.[quick.key])===String(value)?'active':'')+'" data-list-quick-key="'+esc(quick.key)+'" data-list-quick-value="'+esc(value)+'">'+esc(label)+'</button>').join('')+'<span class="list-chip-gap" aria-hidden="true"></span>':'')+filterChips+sortChip+more+'</div>';
-    return '<div class="list-toolbar list-toolbar-chips" data-list-page="'+esc(name)+'"'+(listIsFew(name,count)?' data-few':'')+'><div class="list-toolbar-main"><label class="list-search-box">'+icon('i-search')+'<span class="hidden">Zoeken</span><input data-list-search aria-label="'+esc(ui.placeholder||'Zoeken')+'" placeholder="'+esc(ui.placeholder||'Zoeken')+'" value="'+esc(q)+'"><button type="button" class="list-search-clear '+(q?'':'hidden')+'" data-list-clear-search aria-label="Zoekopdracht wissen">×</button></label>'+(extraHtml?'<div class="list-toolbar-actions"><span class="list-extra-action">'+extraHtml+'</span></div>':'')+'</div>'+chipRow+'</div>'
+    return '<div class="list-toolbar list-toolbar-chips" data-list-page="'+esc(name)+'"'+(listIsFew(name,count)?' data-few':'')+'>'+(extraHtml?'<div class="list-toolbar-main"><div class="list-toolbar-actions"><span class="list-extra-action">'+extraHtml+'</span></div></div>':'')+chipRow+'</div>'
   }
   const chipsHtml=chips.length?'<div class="list-filter-chips" aria-label="Actieve filters">'+chips.map(x=>'<button type="button" class="list-filter-chip" data-list-clear-filter="'+esc(x.key)+'">'+esc(x.label)+' <span aria-hidden="true">×</span></button>').join('')+'<button type="button" class="list-clear-filters" data-list-clear-filters>Filters wissen</button></div>':'';
-  return '<div class="list-toolbar" data-list-page="'+esc(name)+'"'+(listIsFew(name,count)?' data-few':'')+'><div class="list-toolbar-main"><label class="list-search-box">'+icon('i-search')+'<span class="hidden">Zoeken</span><input data-list-search aria-label="'+esc(ui.placeholder||'Zoeken')+'" placeholder="'+esc(ui.placeholder||'Zoeken')+'" value="'+esc(q)+'"><button type="button" class="list-search-clear '+(q?'':'hidden')+'" data-list-clear-search aria-label="Zoekopdracht wissen">×</button></label>'+quickHtml+'<div class="list-toolbar-actions">'+filterButton+sortButton+(extraHtml?'<span class="list-extra-action">'+extraHtml+'</span>':'')+'</div></div>'+chipsHtml+'</div>'
+  return '<div class="list-toolbar" data-list-page="'+esc(name)+'"'+(listIsFew(name,count)?' data-few':'')+'><div class="list-toolbar-main">'+quickHtml+'<div class="list-toolbar-actions">'+filterButton+sortButton+(extraHtml?'<span class="list-extra-action">'+extraHtml+'</span>':'')+'</div></div>'+chipsHtml+'</div>'
 }
 // withSort: the phone has one filter button, so the sort choice sits at the bottom of the same dialog.
 // Phone Inkomsten (Kwin 2026-10-17, Hick): Status and Periode are already on the page (quick filters + period pill), Type only matters with credit invoices.
@@ -4126,20 +4129,10 @@ function openListSort(name,trigger=null){
   modal('Sorteren',body,'<button type="submit" form="listSortForm" class="btn primary">Toepassen</button>');
   document.getElementById('listSortForm')?.addEventListener('submit',e=>{e.preventDefault();const data=new FormData(e.currentTarget);s.sort=String(data.get('sort')||LIST_DEFAULTS[name]?.sort||'');persistListState();closeModal();render()})
 }
-function focusListSearch(name,pos=null){
-  requestAnimationFrame(()=>{const el=document.querySelector('[data-list-page="'+CSS.escape(name)+'"] [data-list-search]');if(!el)return;el.focus();const p=pos==null?el.value.length:Math.min(pos,el.value.length);try{el.setSelectionRange(p,p)}catch(_){}})
-}
 function wireListToolbar(){
   const content=document.getElementById('content');
   document.querySelectorAll('[data-list-page]').forEach(toolbar=>{
-    const name=toolbar.dataset.listPage,input=toolbar.querySelector('[data-list-search]');
-    input?.addEventListener('input',e=>{
-      const value=e.target.value,pos=e.target.selectionStart;clearTimeout(listSearchTimer);
-      listSearchTimer=setTimeout(()=>{listPageState(name).query=String(value||'').trim();persistListState();render();focusListSearch(name,pos)},180)
-    });
-    input?.addEventListener('keydown',e=>{
-      if(e.key==='Escape'&&String(e.currentTarget.value||'')){e.preventDefault();e.stopPropagation();clearTimeout(listSearchTimer);listPageState(name).query='';persistListState();render();focusListSearch(name,0)}
-    });
+    const name=toolbar.dataset.listPage;
     toolbar.querySelectorAll('[data-list-quick-key]').forEach(btn=>btn.addEventListener('click',()=>{listPageState(name).filters[btn.dataset.listQuickKey]=btn.dataset.listQuickValue;persistListState();render()}));
     toolbar.querySelector('[data-list-open-filters]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListFilters(name,e.currentTarget)});
     toolbar.querySelector('[data-list-open-sort]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListSort(name,e.currentTarget)});
@@ -4148,7 +4141,7 @@ function wireListToolbar(){
   });
   content?.querySelectorAll('[data-list-clear-search]').forEach(btn=>btn.addEventListener('click',()=>{
     const toolbar=content.querySelector('[data-list-page]');if(!toolbar)return;const name=toolbar.dataset.listPage;
-    clearTimeout(listSearchTimer);listPageState(name).query='';persistListState();render();focusListSearch(name,0)
+    clearTimeout(listSearchTimer);listPageState(name).query='';persistListState();render();const input=document.getElementById('headerSearchInput');if(input){input.value='';input.focus()}
   }));
   content?.querySelectorAll('[data-list-clear-filters]').forEach(btn=>btn.addEventListener('click',()=>{
     const toolbar=content.querySelector('[data-list-page]');if(!toolbar)return;clearListFilters(toolbar.dataset.listPage);render()
@@ -4617,25 +4610,103 @@ function globalSearchResults(q){
 let globalSearchScope='';
 const GLOBAL_SEARCH_RECENT_KEY='boekuna.search.recent';
 function globalSearchRecent(){try{return JSON.parse(localStorage.getItem(GLOBAL_SEARCH_RECENT_KEY)||'[]').filter(x=>typeof x==='string').slice(0,5)}catch{return []}}
-function rememberGlobalSearch(){const q=String(document.getElementById('globalSearchInput')?.value||'').trim();if(q.length<2)return;try{localStorage.setItem(GLOBAL_SEARCH_RECENT_KEY,JSON.stringify([q,...globalSearchRecent().filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,5)))}catch{}}
-function useGlobalSearch(q){const input=document.getElementById('globalSearchInput');if(!input)return;input.value=q;renderGlobalSearchResults();input.focus()}
+function rememberGlobalSearch(){const q=String(globalSearchInputEl()?.value||'').trim();if(q.length<2)return;try{localStorage.setItem(GLOBAL_SEARCH_RECENT_KEY,JSON.stringify([q,...globalSearchRecent().filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,5)))}catch{}}
+function useGlobalSearch(q){const input=globalSearchInputEl();if(!input)return;input.value=q;renderGlobalSearchResults();input.focus()}
 function setGlobalSearchScope(scope){globalSearchScope=scope;document.querySelectorAll('.global-search-chips button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scope===scope)));renderGlobalSearchResults()}
 function globalSearchMark(text,q){const t=String(text||''),i=q?t.toLowerCase().indexOf(q.toLowerCase()):-1;return i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}
 function renderGlobalSearchResults(){
- const box=document.getElementById('globalSearchResults'),q=document.getElementById('globalSearchInput')?.value||'';if(!box)return;
+ const box=document.getElementById('globalSearchResults'),q=globalSearchInputEl()?.value||'';if(!box)return;
  const phone=phoneLayout(),term=String(q).trim();
  const groups=globalSearchResults(q).filter(([label])=>!phone||!globalSearchScope||label===globalSearchScope);
  if(term.length<2){const recent=globalSearchRecent();box.innerHTML=recent.length?`<section class="global-search-group"><h3>Recent</h3>${recent.map(r=>`<button type="button" class="global-search-item global-search-recent" onclick="useGlobalSearch(this.dataset.q)" data-q="${esc(r)}"><span><strong>${esc(r)}</strong></span></button>`).join('')}</section>`:'<p class="global-search-hint">Zoek een klant, factuurnummer, bedrag of winkel.</p>';return}
- box.innerHTML=groups.length?groups.map(([label,items])=>`<section class="global-search-group"><h3>${label}</h3>${items.map(x=>`<button type="button" class="global-search-item" onclick="rememberGlobalSearch();closeModal();${x.action}"><span><strong>${phone?globalSearchMark(x.title,term):esc(x.title)}</strong><span>${phone?globalSearchMark(x.sub,term):esc(x.sub)}</span></span>${x.value?`<strong class="global-search-value">${x.value}</strong>`:''}</button>`).join('')}</section>`).join(''):`<p class="global-search-hint">Niets gevonden voor “${esc(q)}”.</p>`;
+ box.innerHTML=groups.length?groups.map(([label,items])=>`<section class="global-search-group"><h3>${label}</h3>${items.map(x=>`<button type="button" class="global-search-item" onclick="rememberGlobalSearch();closeHeaderSearch({keepQuery:true});closeModal();${x.action}"><span><strong>${phone?globalSearchMark(x.title,term):esc(x.title)}</strong><span>${phone?globalSearchMark(x.sub,term):esc(x.sub)}</span></span>${x.value?`<strong class="global-search-value">${x.value}</strong>`:''}</button>`).join('')}</section>`).join(''):`<p class="global-search-hint">Niets gevonden voor “${esc(q)}”.</p>`;
 }
-function openGlobalSearch(){
- const phone=phoneLayout();globalSearchScope='';
- const chips=phone?`<div class="global-search-chips" role="group" aria-label="Zoek in">${[['','Alles'],['Facturen','Facturen'],['Kosten','Kosten'],['Bonnen','Bonnen'],['Relaties','Relaties']].map(([v,l])=>`<button type="button" data-scope="${v}" aria-pressed="${v===''}" onclick="setGlobalSearchScope('${v}')">${l}</button>`).join('')}</div>`:'';
- modal('Zoeken',`<div class="global-search"><label class="sr-only" for="globalSearchInput">Zoeken</label><input id="globalSearchInput" type="search" autocomplete="off" placeholder="Klant, nummer, bedrag of winkel" oninput="renderGlobalSearchResults()">${chips}<div id="globalSearchResults" aria-live="polite"></div></div>`);
- if(phone){const dialog=document.querySelector('#modalRoot .modal');dialog?.classList.add('global-search-page');dialog?.closest('.modal-backdrop')?.classList.add('global-search-backdrop')}
- renderGlobalSearchResults();
- setTimeout(()=>document.getElementById('globalSearchInput')?.focus(),30);
+// Kwin 2026-11-02: one search, only behind the magnifier top right. A tap opens a search bar in the header; what you type
+// filters the screen you are on (the list, Actie nodig, Instellingen, Hulp). Screens without a list search everything,
+// with the results right under the bar. Pages keep no search field of their own.
+let headerSearchScope='',headerSearchList='',headerSearchPage='',headerSearchTimer=null;
+function globalSearchInputEl(){return document.getElementById('globalSearchInput')||(headerSearchScope==='global'?document.getElementById('headerSearchInput'):null)}
+function openGlobalSearch(){openHeaderSearch('global')}
+function headerSearchTarget(){
+ const content=document.getElementById('content'),toolbar=content?.querySelector('[data-list-page]');
+ if(toolbar)return {scope:'list',list:toolbar.dataset.listPage};
+ if(page==='control'&&content?.querySelector('.control-worklist'))return {scope:'control'};
+ const help=content?.querySelector('.help-answers');if(help&&help.getClientRects().length)return {scope:'help'};
+ if(content?.querySelector('#settingsCenter .settings-center-nav'))return {scope:'settings'};
+ return {scope:'global'};
 }
+function headerSearchPlaceholder(scope,list){
+ if(scope==='list')return (phoneLayout()&&LIST_PHONE_PLACEHOLDER[list])||LIST_UI[list]?.placeholder||'Zoeken';
+ return {control:'Zoek op naam of omschrijving',help:'Zoek in hulp, bijv. btw verlegd',settings:'Zoek een instelling'}[scope]||'Klant, nummer, bedrag of winkel';
+}
+function headerSearchQuery(){
+ if(headerSearchScope==='list')return String(listPageState(headerSearchList).query||'');
+ if(headerSearchScope==='control')return String(controlList().query||'');
+ return '';
+}
+function applyHeaderSearch(value){
+ const v=String(value||'');
+ if(headerSearchScope==='list'){listPageState(headerSearchList).query=v.trim();persistListState();render()}
+ else if(headerSearchScope==='control'){controlList().query=v;controlList().page=1;render()}
+ else if(headerSearchScope==='settings')window.boekunaSettingsSearch?.(v);
+ else if(headerSearchScope==='help')window.filterHelpAnswers?.(v);
+ else renderGlobalSearchResults();
+}
+function placeHeaderSearchPanel(){
+ const panel=document.getElementById('headerSearchPanel'),bar=document.querySelector('#appMain .topbar');if(!panel||!bar)return;
+ panel.style.setProperty('--header-search-top',Math.max(0,Math.round(bar.getBoundingClientRect().bottom))+'px');
+}
+function openHeaderSearch(scope,opts={}){
+ const bar=document.getElementById('headerSearch'),input=document.getElementById('headerSearchInput'),panel=document.getElementById('headerSearchPanel');if(!bar||!input)return;
+ const target=scope?{scope,list:scope==='list'?headerSearchTarget().list:''}:headerSearchTarget();
+ if(target.scope==='list'&&!target.list)target.scope='global';
+ headerSearchScope=target.scope;headerSearchList=target.list||'';headerSearchPage=page;
+ input.placeholder=headerSearchPlaceholder(headerSearchScope,headerSearchList);input.setAttribute('aria-label',input.placeholder);
+ if(headerSearchScope==='list')input.setAttribute('data-list-search','');else input.removeAttribute('data-list-search');
+ if(opts.keepValue!==true)input.value=headerSearchQuery();
+ bar.hidden=false;bar.closest('.topbar')?.classList.add('is-searching');document.documentElement.classList.add('header-searching');
+ document.getElementById('globalSearchButton')?.setAttribute('aria-expanded','true');
+ if(panel){
+  if(headerSearchScope==='global'){
+   globalSearchScope='';
+   const chips=`<div class="global-search-chips" role="group" aria-label="Zoek in">${[['','Alles'],['Facturen','Facturen'],['Kosten','Kosten'],['Bonnen','Bonnen'],['Relaties','Relaties']].map(([v,l])=>`<button type="button" data-scope="${v}" aria-pressed="${v===''}" onclick="setGlobalSearchScope('${v}')">${l}</button>`).join('')}</div>`;
+   panel.innerHTML=`<div class="global-search">${phoneLayout()?chips:''}<div id="globalSearchResults" aria-live="polite"></div></div>`;
+   panel.hidden=false;placeHeaderSearchPanel();renderGlobalSearchResults();
+  }else{panel.hidden=true;panel.innerHTML=''}
+ }
+ if(opts.focus!==false)setTimeout(()=>{input.focus();try{input.setSelectionRange(input.value.length,input.value.length)}catch(_){}},30);
+}
+function closeHeaderSearch(opts={}){
+ const bar=document.getElementById('headerSearch'),input=document.getElementById('headerSearchInput'),panel=document.getElementById('headerSearchPanel');if(!bar||bar.hidden)return;
+ clearTimeout(headerSearchTimer);
+ const scope=headerSearchScope,hadQuery=String(input?.value||'').trim()!==''||headerSearchQuery()!=='';
+ bar.hidden=true;bar.closest('.topbar')?.classList.remove('is-searching');document.documentElement.classList.remove('header-searching');
+ if(panel){panel.hidden=true;panel.innerHTML=''}
+ document.getElementById('globalSearchButton')?.setAttribute('aria-expanded','false');
+ if(input)input.value='';
+ // Closing the bar also ends the search, so a list never stays filtered by text you can no longer see.
+ if(opts.keepQuery!==true&&hadQuery&&headerSearchPage===page&&scope!=='global')applyHeaderSearch('');
+ headerSearchScope='';headerSearchList='';
+ if(opts.restoreFocus)document.getElementById('globalSearchButton')?.focus();
+}
+// After each render: a new page closes the bar, unless that page still has a search on (then the bar shows it).
+function syncHeaderSearch(){
+ const bar=document.getElementById('headerSearch');if(!bar)return;
+ if(!bar.hidden&&headerSearchPage!==page)closeHeaderSearch({keepQuery:true});
+ if(bar.hidden){const t=headerSearchTarget();if(t.scope==='list'&&String(listPageState(t.list).query||'').trim())openHeaderSearch('list',{focus:false});return}
+ if(headerSearchScope==='settings'||headerSearchScope==='help'){const v=document.getElementById('headerSearchInput')?.value||'';if(v)applyHeaderSearch(v)}
+ if(headerSearchScope==='list'&&!document.querySelector('#content [data-list-page]'))closeHeaderSearch({keepQuery:true});
+}
+(function wireHeaderSearch(){
+ const input=document.getElementById('headerSearchInput');if(!input)return;
+ input.addEventListener('input',()=>{const v=input.value;clearTimeout(headerSearchTimer);if(headerSearchScope==='global'||headerSearchScope==='settings'||headerSearchScope==='help')return applyHeaderSearch(v);headerSearchTimer=setTimeout(()=>applyHeaderSearch(v),180)});
+ input.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeHeaderSearch({restoreFocus:true})}
+  else if(e.key==='Enter'&&headerSearchScope!=='global'){e.preventDefault();clearTimeout(headerSearchTimer);applyHeaderSearch(input.value);if(phoneLayout())input.blur()}
+ });
+ document.getElementById('headerSearchClose')?.addEventListener('click',()=>closeHeaderSearch({restoreFocus:!phoneLayout()}));
+ window.addEventListener('resize',placeHeaderSearchPanel);
+})();
 // Phone, empty account (Kwin 2026-10-10): three steps instead of tiles full of zeros; the numbers show once there is something in.
 // Volledige test 6/21/24 (Kwin 2026-11-01): one start list on phone and computer. It stays until every step is done or you hide it,
 // and counts what is left ("Nog 2 stappen") with steps numbered 1 to 4.
@@ -5452,7 +5523,7 @@ function openControlItem(key){const item=attentionRows().find(row=>row.key===key
 function renderControl(){
  const rows=attentionRows(),ui=controlList(),query=listNormalize(ui.query),filtered=rows.filter(row=>(ui.category==='all'||row.category===ui.category)&&(!query||listNormalize(row.title+' '+row.detail).includes(query))),pages=Math.max(1,Math.ceil(filtered.length/25));ui.page=Math.min(Math.max(1,ui.page),pages);
  const visible=filtered.slice((ui.page-1)*25,ui.page*25),categories=[['all','Alles'],['overdue','Facturen'],['documents','Documenten'],['bank','Bank'],['contacts','Klanten'],['bookings','Boekingen'],['health','Gegevens']],ready=eInvoiceReadiness(),audit=(state.audit||[]).slice(0,10);
- return `<div class="page-head"><div><h1>Actie nodig</h1></div><span class="badge ${rows.length?'warn':'good'}">${rows.length?rows.length+' aandachtspunten':'Alles bijgewerkt'}</span></div><div class="card control-worklist"><div class="section-head"><h2>Uitzonderingen</h2></div><div class="control-filters" aria-label="Soort aandachtspunt">${categories.map(([key,name])=>{const count=key==='all'?rows.length:rows.filter(row=>row.category===key).length;return `<button id="control-filter-${key}" class="filter-btn ${ui.category===key?'active':''}" type="button" aria-pressed="${ui.category===key}" onclick="setControlFilter('${key}')">${name} (${count})</button>`}).join('')}</div><div class="field control-search"><label for="controlSearch">Zoek aandachtspunten</label><input type="search" id="controlSearch" value="${esc(ui.query)}" placeholder="Zoek op naam of omschrijving"></div><div class="action-list">${visible.map(row=>`<div class="action-row" data-control-key="${esc(row.key)}"><span class="action-dot"></span><div class="action-text"><strong>${esc(row.title)}</strong><span>${esc(row.detail)}</span></div><button type="button" class="link-btn" onclick="openControlItem(${esc(JSON.stringify(row.key))})">${row.label}</button></div>`).join('')||'<div class="empty"><strong>'+(!rows.length?'Alles bijgewerkt':'Geen aandachtspunten gevonden')+'</strong></div>'}</div><div class="control-pagination"><button type="button" class="btn small" ${ui.page===1?'disabled':''} id="controlPrevious" onclick="setControlPage(${ui.page-1},'controlPrevious')">Vorige</button><span role="status" aria-live="polite">${filtered.length?((ui.page-1)*25+1)+'–'+Math.min(ui.page*25,filtered.length)+' van '+filtered.length:'0 resultaten'}</span><button type="button" class="btn small" ${ui.page===pages?'disabled':''} id="controlNext" onclick="setControlPage(${ui.page+1},'controlNext')">Volgende</button></div></div><details class="card secondary-disclosure"><summary><span>E-factuurcontrole</span><span class="badge ${ready.pct===100?'good':'warn'}">${ready.pct}%</span></summary><div class="disclosure-body">${ready.checks.map(([key,value])=>`<div class="statline"><span>${esc(key)}</span><span class="badge ${value?'good':'warn'}">${value?'Compleet':'Ontbreekt'}</span></div>`).join('')}<div class="help critical-help">Nog geen Peppol-koppeling.</div></div></details><details class="card secondary-disclosure"><summary><span>Activiteit</span><span class="section-meta">Recent</span></summary><div class="disclosure-body table-wrap"><table class="table"><thead><tr><th>Tijd</th><th>Actie</th><th>Details</th><th>Type</th></tr></thead><tbody>${audit.map(a=>`<tr><td>${new Date(a.at).toLocaleString('nl-NL')}</td><td>${esc(a.action)}</td><td>${esc(a.detail||'—')}</td><td>${esc(a.entityType||'—')}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty"><strong>Nog geen activiteiten</strong></div></td></tr>'}</tbody></table></div></details>`
+ return `<div class="page-head"><div><h1>Actie nodig</h1></div><span class="badge ${rows.length?'warn':'good'}">${rows.length?rows.length+' aandachtspunten':'Alles bijgewerkt'}</span></div><div class="card control-worklist"><div class="section-head"><h2>Uitzonderingen</h2></div><div class="control-filters" aria-label="Soort aandachtspunt">${categories.map(([key,name])=>{const count=key==='all'?rows.length:rows.filter(row=>row.category===key).length;return `<button id="control-filter-${key}" class="filter-btn ${ui.category===key?'active':''}" type="button" aria-pressed="${ui.category===key}" onclick="setControlFilter('${key}')">${name} (${count})</button>`}).join('')}</div><div class="action-list">${visible.map(row=>`<div class="action-row" data-control-key="${esc(row.key)}"><span class="action-dot"></span><div class="action-text"><strong>${esc(row.title)}</strong><span>${esc(row.detail)}</span></div><button type="button" class="link-btn" onclick="openControlItem(${esc(JSON.stringify(row.key))})">${row.label}</button></div>`).join('')||'<div class="empty"><strong>'+(!rows.length?'Alles bijgewerkt':'Geen aandachtspunten gevonden')+'</strong></div>'}</div><div class="control-pagination"><button type="button" class="btn small" ${ui.page===1?'disabled':''} id="controlPrevious" onclick="setControlPage(${ui.page-1},'controlPrevious')">Vorige</button><span role="status" aria-live="polite">${filtered.length?((ui.page-1)*25+1)+'–'+Math.min(ui.page*25,filtered.length)+' van '+filtered.length:'0 resultaten'}</span><button type="button" class="btn small" ${ui.page===pages?'disabled':''} id="controlNext" onclick="setControlPage(${ui.page+1},'controlNext')">Volgende</button></div></div><details class="card secondary-disclosure"><summary><span>E-factuurcontrole</span><span class="badge ${ready.pct===100?'good':'warn'}">${ready.pct}%</span></summary><div class="disclosure-body">${ready.checks.map(([key,value])=>`<div class="statline"><span>${esc(key)}</span><span class="badge ${value?'good':'warn'}">${value?'Compleet':'Ontbreekt'}</span></div>`).join('')}<div class="help critical-help">Nog geen Peppol-koppeling.</div></div></details><details class="card secondary-disclosure"><summary><span>Activiteit</span><span class="section-meta">Recent</span></summary><div class="disclosure-body table-wrap"><table class="table"><thead><tr><th>Tijd</th><th>Actie</th><th>Details</th><th>Type</th></tr></thead><tbody>${audit.map(a=>`<tr><td>${new Date(a.at).toLocaleString('nl-NL')}</td><td>${esc(a.action)}</td><td>${esc(a.detail||'—')}</td><td>${esc(a.entityType||'—')}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty"><strong>Nog geen activiteiten</strong></div></td></tr>'}</tbody></table></div></details>`
 }
 function normalizePlannedCash(x){return {...x,repeating:['oneoff','weekly','monthly','quarterly','yearly'].includes(x?.repeating)?x.repeating:'oneoff'}}
 function plannedCashDate(value){
@@ -5862,10 +5933,8 @@ function wireDashboardChart(){
  document.addEventListener('focusin',event=>states.forEach(state=>{if(!state.chart.contains(event.target))state.close()}),options);
  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&states.some(state=>!state.output.hidden)){event.preventDefault();states.forEach(state=>state.close())}},options);
 }
-function wireControlSearch(){
- const input=document.getElementById('controlSearch');if(!input)return;
- input.addEventListener('input',()=>{const value=input.value,pos=input.selectionStart;controlList().query=value;controlList().page=1;render();const next=document.getElementById('controlSearch');next?.focus();try{next?.setSelectionRange(pos,pos)}catch(err){}})
-}
+function wireControlSearch(){} // Kwin 2026-11-02: Actie nodig is searched from the header (headerSearch).
+
 function wireDocumentDropzone(){
  const zone=document.querySelector('.documents-workspace .dropzone');if(!zone)return;
  zone.addEventListener('dragover',event=>{event.preventDefault();event.dataTransfer.dropEffect='copy'});
@@ -5882,7 +5951,7 @@ function wireMobileStackTableAccessibility(){
   })})
  })
 }
-function wirePage(){enhanceAppInterface(document.getElementById('content'));wireMobileStackTableAccessibility();wireDashboardChart();wireControlSearch();wireDocumentDropzone();if(page==='settings'){void refreshBillingCard();void refreshEmailConnectionCard();}const csv=document.getElementById('csvFile');if(csv)csv.addEventListener('change',handleCSV);const doc=document.getElementById('docFile');if(doc)doc.addEventListener('change',handleSmartDocumentUpload);const archive=document.getElementById('archiveFile');if(archive)archive.addEventListener('change',handleGenericDocuments);const q=document.getElementById('vatPeriod');if(q)q.addEventListener('change',()=>{sessionStorage.setItem('vatPeriod',q.value);if(q.value!=='year')sessionStorage.setItem('vatQ',q.value);render()});const vy=document.getElementById('vatYear');if(vy)vy.addEventListener('change',()=>{sessionStorage.setItem('vatYear',vy.value);render()});const rf=document.getElementById('reportFrom'),rt=document.getElementById('reportTo');if(rf)rf.addEventListener('change',()=>setReportDate('from',rf.value));if(rt)rt.addEventListener('change',()=>setReportDate('to',rt.value));const ff=document.getElementById('financialFrom'),ft=document.getElementById('financialTo');if(ff)ff.addEventListener('change',()=>setFinancialDate('from',ff.value));if(ft)ft.addEventListener('change',()=>setFinancialDate('to',ft.value));const pf=document.getElementById('profileForm');if(pf)pf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(pf),keys=['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','peppolId','invoicePrefix'];for(const k of keys)state.company[k]=String(f.get(k)||'').trim();state.company.paymentDays=Number(f.get('paymentDays')||14);state.company.kor=f.get('kor')==='on';state.company.profileUpdatedAt=new Date().toISOString();saveProfileData(state.company);save();logEvent('Bedrijfsgegevens bijgewerkt',state.company.name||'Bedrijfsgegevens','profile','company');toast('Bedrijfsgegevens opgeslagen.');if(!resumeReturnIntentAfterProfile()){if(!requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}).length)navigate(profileReturnPage&&profileReturnPage!=='profile'?profileReturnPage:'dashboard');else render()}});const et=document.getElementById('emailTemplateForm');if(et)et.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(et);state.company.emailTemplate={...DEFAULT_EMAIL_TEMPLATE,senderName:String(f.get('senderName')||'').trim(),accentColor:String(f.get('accentColor')||'#17382f'),subjectInvoice:String(f.get('subjectInvoice')||'').trim(),subjectCredit:String(f.get('subjectCredit')||'').trim(),bodyInvoice:String(f.get('bodyInvoice')||'').trim(),bodyCredit:String(f.get('bodyCredit')||'').trim(),footerText:String(f.get('footerText')||'').trim(),showSummary:f.get('showSummary')==='on',showPaymentCard:f.get('showPaymentCard')==='on'};saveProfileData(state.company);save();logEvent('E-mailsjabloon bijgewerkt','Factuurmails','settings','email-template');toast('E-mailsjabloon opgeslagen');render()});const idf=document.getElementById('invoiceDesignForm');if(idf)idf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(idf),current={...DEFAULT_INVOICE_DESIGN,...(state.company.invoiceDesign||{})};state.company.invoiceDesign={...current,layout:String(f.get('layout')||'modern'),accentColor:String(f.get('accentColor')||'#17382f'),footerText:String(f.get('footerText')||'').trim(),showPaymentBlock:f.get('showPaymentBlock')==='on',showVatBreakdown:true,showContactDetails:f.get('showContactDetails')==='on'};saveProfileData(state.company);save();logEvent('Factuurlayout bijgewerkt',state.company.invoiceDesign.layout,'settings','invoice-design');toast('Factuurlayout opgeslagen');render()});const ilf=document.getElementById('invoiceLogoFile');if(ilf)ilf.addEventListener('change',e=>handleInvoiceLogoFile(e.target.files?.[0]));const kt=document.getElementById('korToggle');if(kt)kt.addEventListener('click',()=>{state.company.kor=!state.company.kor;save();render()});const bf=document.getElementById('backupFile');if(bf)bf.addEventListener('change',importBackup);wireListToolbar()}
+function wirePage(){enhanceAppInterface(document.getElementById('content'));wireMobileStackTableAccessibility();wireDashboardChart();wireControlSearch();wireDocumentDropzone();if(page==='settings'){void refreshBillingCard();void refreshEmailConnectionCard();}const csv=document.getElementById('csvFile');if(csv)csv.addEventListener('change',handleCSV);const doc=document.getElementById('docFile');if(doc)doc.addEventListener('change',handleSmartDocumentUpload);const archive=document.getElementById('archiveFile');if(archive)archive.addEventListener('change',handleGenericDocuments);const q=document.getElementById('vatPeriod');if(q)q.addEventListener('change',()=>{sessionStorage.setItem('vatPeriod',q.value);if(q.value!=='year')sessionStorage.setItem('vatQ',q.value);render()});const vy=document.getElementById('vatYear');if(vy)vy.addEventListener('change',()=>{sessionStorage.setItem('vatYear',vy.value);render()});const rf=document.getElementById('reportFrom'),rt=document.getElementById('reportTo');if(rf)rf.addEventListener('change',()=>setReportDate('from',rf.value));if(rt)rt.addEventListener('change',()=>setReportDate('to',rt.value));const ff=document.getElementById('financialFrom'),ft=document.getElementById('financialTo');if(ff)ff.addEventListener('change',()=>setFinancialDate('from',ff.value));if(ft)ft.addEventListener('change',()=>setFinancialDate('to',ft.value));const pf=document.getElementById('profileForm');if(pf)pf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(pf),keys=['name','tradeName','contactName','email','phone','website','address','postal','city','country','kvk','vat','iban','bic','bankAccountName','peppolId','invoicePrefix'];for(const k of keys)state.company[k]=String(f.get(k)||'').trim();state.company.paymentDays=Number(f.get('paymentDays')||14);state.company.kor=f.get('kor')==='on';state.company.profileUpdatedAt=new Date().toISOString();saveProfileData(state.company);save();logEvent('Bedrijfsgegevens bijgewerkt',state.company.name||'Bedrijfsgegevens','profile','company');toast('Bedrijfsgegevens opgeslagen.');if(!resumeReturnIntentAfterProfile()){if(!requirementsFor('invoice-finalize',{taxTreatment:state.company.kor?'kor':'standard'}).length)navigate(profileReturnPage&&profileReturnPage!=='profile'?profileReturnPage:'dashboard');else render()}});const et=document.getElementById('emailTemplateForm');if(et)et.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(et);state.company.emailTemplate={...DEFAULT_EMAIL_TEMPLATE,senderName:String(f.get('senderName')||'').trim(),accentColor:String(f.get('accentColor')||'#17382f'),subjectInvoice:String(f.get('subjectInvoice')||'').trim(),subjectCredit:String(f.get('subjectCredit')||'').trim(),bodyInvoice:String(f.get('bodyInvoice')||'').trim(),bodyCredit:String(f.get('bodyCredit')||'').trim(),footerText:String(f.get('footerText')||'').trim(),showSummary:f.get('showSummary')==='on',showPaymentCard:f.get('showPaymentCard')==='on'};saveProfileData(state.company);save();logEvent('E-mailsjabloon bijgewerkt','Factuurmails','settings','email-template');toast('E-mailsjabloon opgeslagen');render()});const idf=document.getElementById('invoiceDesignForm');if(idf)idf.addEventListener('submit',e=>{e.preventDefault();const f=new FormData(idf),current={...DEFAULT_INVOICE_DESIGN,...(state.company.invoiceDesign||{})};state.company.invoiceDesign={...current,layout:String(f.get('layout')||'modern'),accentColor:String(f.get('accentColor')||'#17382f'),footerText:String(f.get('footerText')||'').trim(),showPaymentBlock:f.get('showPaymentBlock')==='on',showVatBreakdown:true,showContactDetails:f.get('showContactDetails')==='on'};saveProfileData(state.company);save();logEvent('Factuurlayout bijgewerkt',state.company.invoiceDesign.layout,'settings','invoice-design');toast('Factuurlayout opgeslagen');render()});const ilf=document.getElementById('invoiceLogoFile');if(ilf)ilf.addEventListener('change',e=>handleInvoiceLogoFile(e.target.files?.[0]));const kt=document.getElementById('korToggle');if(kt)kt.addEventListener('click',()=>{state.company.kor=!state.company.kor;save();render()});const bf=document.getElementById('backupFile');if(bf)bf.addEventListener('change',importBackup);wireListToolbar();syncHeaderSearch()}
 function quickActionButton(label,sub,icon,call,main=false){return `<button class="quick-action${main?' quick-action-main':''}" onclick="closeModal();${call}"><span class="quick-action-icon" aria-hidden="true"><svg class="icon"><use href="#${icon}"/></svg></span><span class="quick-action-text"><strong>${label}</strong>${sub?`<span>${sub}</span>`:''}</span></button>`}
 // Phone: the pages have no own main button (Kwin 2026-10-09, Bonnetjes 2026-10-10), so what they offered is also under Nieuw.
 // Fewer choices (Kwin 2026-10-17, Hick): one Uploaden (the document decides whether it is income or costs).

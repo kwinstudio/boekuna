@@ -1507,10 +1507,8 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew{background:#2E353B!important;color:#fff!important}
   html[data-theme="dark"] body #mainApp#mainApp .topbar #quickNew .icon{color:#fff!important}
   html[data-theme="dark"] body #mainApp#mainApp:has(#content .r1d-hero) .topbar :is(.mobile-menu,.top-actions>button:not(#quickNew)){border-radius:50%!important;background:#ffffff1f!important;color:#fff!important}
-  /* Kwin 2026-10-23 "inspiratie van Revolut": a search pill in the top bar and a Recent card under the blocks. */
+  /* Kwin 2026-10-23 "inspiratie van Revolut": a Recent card under the blocks. The search is a magnifier top right since 2026-11-02 (zoeken.css). */
   html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions{flex:1 1 auto!important;max-width:none!important;justify-content:flex-end!important;margin-left:12px!important}
-  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton{display:flex!important;flex-direction:row!important;align-items:center!important;flex:1 1 auto!important;width:auto!important;max-width:none!important;justify-content:flex-start!important;gap:8px!important;padding:0 14px!important;border-radius:999px!important}
-  html body #mainApp#mainApp:has(#content .r1d-hero) .topbar .top-actions>#globalSearchButton#globalSearchButton::after{content:"Zoeken";font-size:15px;font-weight:500;color:#ffffffc7}
   html body #mainApp#mainApp #content .r1d-recent{margin:12px 0 0!important;padding:8px 6px;border-radius:24px;background:var(--calm-surface)}
   html body #mainApp#mainApp #content .r1d-recent h2{margin:6px 12px 4px!important;font-size:15px!important;font-weight:650!important;color:var(--calm-label)!important}
   html body #mainApp#mainApp #content .r1d-recent-row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:8px 12px;border:0;border-radius:16px;background:transparent;color:var(--calm-ink);font:inherit;text-align:left;cursor:pointer}

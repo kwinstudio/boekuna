@@ -131,8 +131,8 @@ assert.ok(html.includes("function invoiceListStatusMatch(i,status)"),"Invoice st
 assert.ok(html.includes("function invoiceIsOverdueOpen(i)"),"Past-due open invoice semantics must be centralized");
 assert.ok(html.includes("if(status==='overdue')return invoiceIsOverdueOpen(i);"),"Overdue invoice filtering must include partially paid past-due invoices");
 assert.ok(html.includes("function listNormalize(v)"),"List search must share normalized case/accent-insensitive matching");
-assert.ok(html.includes("setTimeout(()=>{listPageState(name).query=String(value||'').trim();persistListState();render();focusListSearch(name,pos)},180)"),"List search must debounce while typing");
-assert.ok(html.includes('aria-label="Zoekopdracht wissen"'),"Search clear controls must be accessible");
+assert.ok(html.includes("headerSearchTimer=setTimeout(()=>applyHeaderSearch(v),180)"),"List search (the header search bar) must debounce while typing");
+assert.ok(html.includes('aria-label="Zoeken sluiten"'),"Search close control must be accessible");
 for(const placeholder of [
   "Zoek op factuurnummer, klant of bedrag",
   "Zoek op leverancier, factuurnummer of bedrag",

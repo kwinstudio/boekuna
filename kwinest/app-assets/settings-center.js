@@ -289,7 +289,7 @@
     ['Kan ik inloggen zonder wachtwoord?','Ja, kies op het inlogscherm Stuur mij een inloglink. Je krijgt een link in je mail die één keer werkt.','']
   ];
   function helpSearchHtml(){
-    return '<div class="settings-center-block help-search"><h3>Zoeken in hulp</h3><label class="help-search-box"><span class="sr-only">Zoek in hulp</span><input type="search" placeholder="Bijv. btw verlegd" oninput="filterHelpAnswers(this.value)"></label><div class="help-answers">'
+    return '<div class="settings-center-block help-search"><h3>Veelgestelde vragen</h3><div class="help-answers">'
       +HELP.map(function(h){return '<details class="help-answer" data-q="'+attr((h[0]+' '+h[1]).toLowerCase())+'"><summary>'+esc(h[0])+'</summary><p>'+esc(h[1])+'</p>'+(h[2]?'<button type="button" class="link-btn" onclick="closeModal();'+attr(h[2])+'">Ga erheen</button>':'')+'</details>'}).join('')
       +'<p class="help help-none" hidden>Niets gevonden. Mail ons gerust, hieronder.</p></div></div>';
   }
@@ -381,13 +381,13 @@
     }).join('');
   }
 
-  // Instellingen on a phone, voorstel B (Kwin 2026-10-21): a search field on top and the four things people open most.
+  // Instellingen on a phone, voorstel B (Kwin 2026-10-21). Since 2026-11-02 the search is the magnifier top right (headerSearch), which calls boekunaSettingsSearch.
   // Everything else stays in the list under it ("Alle instellingen"); the search filters that list.
   var SEARCH_WORDS={business:'bedrijf kvk iban adres btw-nummer bank naam',invoices:'factuur facturen nummer nummering betaaltermijn layout logo kleur',email:'mail e-mail bericht delen sjabloon',notifications:'meldingen nog te doen herinnering',app:'thema donker licht weergave startpagina uitleg',security:'wachtwoord tweestap mfa privacy beveiliging',data:'export backup back-up herstel csv',billing:'abonnement plan betalen prijs gebruik',help:'hulp feedback vraag',account:'account uitloggen e-mailadres',danger:'verwijderen wissen gevaar'};
   function quickHtml(){
     if(!window.matchMedia('(max-width:820px)').matches)return '';
     var tile=function(key,label){return '<button type="button" class="settings-quick-tile" data-settings-open="'+key+'">'+icon(key)+'<strong>'+esc(label)+'</strong></button>'};
-    return '<div class="settings-quick"><label class="settings-search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" placeholder="Zoek een instelling" aria-label="Zoek een instelling" oninput="boekunaSettingsSearch(this.value)"></label>'
+    return '<div class="settings-quick">'
       // Volledige test 11 (Kwin 2026-11-01): no "Vaak gebruikt" tiles; they repeated rows of the list right under them.
       +'<p class="settings-search-empty" hidden>Niets gevonden. Probeer een ander woord.</p></div>';
   }

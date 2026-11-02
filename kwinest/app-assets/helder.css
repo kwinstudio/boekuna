@@ -54,8 +54,7 @@ html[data-theme="dark"] #mainApp #content .profile-missing{background:#3A2E14;co
 /* 20: Bekijk PDF under the summary, never under the sticky buttons. */
 #modalRoot .mobile-invoice-step .mobile-invoice-pdf{margin:10px 0 4px}
 
-/* 9: one search bar. A page with its own search box hides the one on top (the overview keeps it). */
-html.boekuna-helder body #mainApp#mainApp:has(#content .list-toolbar) .topbar .top-actions>#globalSearchButton#globalSearchButton{display:none!important}
+/* 9: one search bar. Since 2026-11-02 that is the magnifier top right on every page (zoeken.css); pages have no own search box. */
 
 /* 18: filters only when there is something to filter: none under 10 rows, then at most two chips plus Meer. */
 html.boekuna-helder #mainApp .list-toolbar[data-few] :is(.list-toolbar-quick,[data-list-open-filters],[data-list-open-sort],.list-filter-chips){display:none!important}
