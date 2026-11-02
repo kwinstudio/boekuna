@@ -59,3 +59,5 @@ html body #modalRoot .action-list .action-row .action-text span{font-size:13px;l
 }
 /* Section headings inside a settings section all the same size (they were 14 and 16 px mixed). */
 html body #mainApp#mainApp #settingsCenter .settings-center-block>h3,html body #mainApp#mainApp #settingsCenter .fb-give h3{font-size:15px;font-weight:650}
+/* A4 preview: scale from the top-left corner in the stylesheet too, not only inline, so WebKit never shows it shifted while the inline style catches up. */
+#modalRoot #reportPreviewFrame{transform-origin:0 0}
