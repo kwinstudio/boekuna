@@ -118,7 +118,8 @@ try{
     assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('boekuna-helder')),true);
     await page.evaluate(()=>navigate('invoices'));
     await page.locator('.list-toolbar').first().waitFor();
-    assert.equal(await page.locator('#globalSearchButton').isVisible(),false,'No second search bar on a list page');
+    assert.equal(await page.locator('#globalSearchButton').isVisible(),true,'One search: the magnifier top right');
+    assert.equal(await page.locator('#content input[type="search"]').count(),0,'No search field in the page itself');
     assert.equal(await page.locator('.list-toolbar[data-few]').count(),1,'Few rows marked');
     await context.close();
   }

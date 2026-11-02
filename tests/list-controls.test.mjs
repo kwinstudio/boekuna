@@ -94,8 +94,10 @@ async function go(name){
   await page.evaluate(name=>navigate(name),name);
   await page.locator('[data-list-page="'+name+'"]').waitFor();
 }
+// Kwin 2026-11-02: lists have no own search field; the magnifier top right opens the search bar in the header.
 async function search(value){
-  const input=page.locator('[data-list-search]');
+  if(!(await page.locator('#headerSearchInput').isVisible()))await page.locator('#globalSearchButton').click();
+  const input=page.locator('#headerSearchInput[data-list-search]');
   await input.fill(value);
   await page.waitForTimeout(240);
 }
@@ -144,7 +146,9 @@ try{
 
   // FACTUREN — number/customer/amount search + status/period/customer filters + sort + clear behavior.
   await go('invoices');
-  assert.equal(await page.locator('[data-list-search]').getAttribute('placeholder'),'Zoek op factuurnummer, klant of bedrag');
+  assert.equal(await page.locator('#content input[type="search"]').count(),0,'No search field in the page itself');
+  await page.locator('#globalSearchButton').click();
+  assert.equal(await page.locator('#headerSearchInput').getAttribute('placeholder'),'Zoek op factuurnummer, klant of bedrag');
   await search(String(new Date().getFullYear())+'-0001');
   assert.deepEqual((await visibleRowTexts()).map(x=>x.includes('0001')), [true],'Invoice number search must find the invoice');
   await clearSearch();
