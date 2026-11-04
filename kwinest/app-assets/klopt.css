@@ -75,3 +75,17 @@ html[data-theme="dark"] #modalRoot .amount-cents{color:var(--dk-muted,#9AA4AB)}
   html body #mainApp#mainApp #content .r1d-kosten .r1d-cost-count i{font-style:normal;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.boekuna-klopt body #mainApp #content .r1d-hero .kpi-hero .metric-sub{text-align:center!important;justify-self:center!important;align-self:center!important;margin-left:auto!important;margin-right:auto!important}
 }
+
+/* 18. Bonnen mailen: your own address in Instellingen and one quiet line in Bonnen. */
+#mainApp .inbound-mail-card .inbound-mail-lead{margin:0 0 12px;font-size:15px;line-height:1.45}
+#mainApp .inbound-mail-address{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:12px 14px;border-radius:14px;background:var(--app-surface-muted,#F3F6F4)}
+#mainApp .inbound-mail-text{flex:1 1 auto;min-width:0;font-size:15px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;-webkit-user-select:all;user-select:all}
+#mainApp .inbound-mail-address .btn{flex:0 0 auto}
+#mainApp .inbound-mail-new{margin-top:4px;padding:0;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--calm-green,#2F7D3B);cursor:pointer}
+#mainApp #content .inbound-mail-hint{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:10px 14px;border-radius:14px;background:var(--app-surface-muted,#F3F6F4);font-size:14px;line-height:1.35}
+#mainApp #content .inbound-mail-hint>span{min-width:0;overflow-wrap:anywhere}
+#mainApp #content .inbound-mail-hint b{font-weight:600}
+#mainApp #content .inbound-mail-hint .btn,#mainApp #content .inbound-mail-hint .link-btn{flex:0 0 auto}
+.document-processing-card .document-mail-tag{display:inline-block;margin:0 0 0 6px;padding:1px 7px;border-radius:999px;background:var(--app-surface-muted,#EEF2EF);color:var(--app-muted-strong,#5E6870);font-size:11px;font-weight:600;line-height:16px;vertical-align:middle}
+html[data-theme="dark"] #mainApp .inbound-mail-address,html[data-theme="dark"] #mainApp #content .inbound-mail-hint,html[data-theme="dark"] .document-processing-card .document-mail-tag{background:var(--dk-surface-2,#232A2F)}
+html[data-theme="dark"] #mainApp .inbound-mail-new{color:var(--dk-green-ink,#7FE08B)}

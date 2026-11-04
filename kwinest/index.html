@@ -2500,6 +2500,7 @@ function clearMismatchedDeveloperTicket(nextUserId=''){
 }
 function resetAuthScopedClientState(nextUserId=''){
  resetBillingCache();
+ inboundAddress={local:null,loaded:false,loading:null,error:''};
  const userId=String(nextUserId||'').trim();
  clearMismatchedDeveloperTicket(userId);
  if(userId)window.BoekunaDeveloperMode?.bindUser?.(userId);
@@ -5790,7 +5791,8 @@ function renderDocuments(){
  ])}</div>
  ${renderDocumentProcessingBoard()}
  ${localFirstPanelHtml()}
- <div class="documents-toolbar">${listToolbar('documents')}</div><div class="card documents-workspace">${docs.length?`<button type="button" class="dropzone premium-dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep document hierheen</strong><span>of kies bestand</span></button><div class="divider"></div>`:''}<div class="section-head"><div><h2>${phoneLayout()?'Bonnen':'Bestanden'} · ${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''}</h2></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-documents"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td>${d.fileId?`<button type="button" class="link-btn document-name-open" onclick="openDocumentPreview('${esc(d.id)}')"><strong>${esc(d.name)}</strong></button>`:`<strong>${esc(d.name)}</strong>`}</td><td>${esc(documentTypeLabel(d.type))}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?(d.linkedType==='expense'&&state.expenses.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="expenseActions('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:d.linkedType==='invoice'&&state.invoices.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="viewInvoice('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right financial-actions">${persistentDocumentReviewActionForFile(d)}${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="icon-btn" aria-label="Document openen" title="Document openen" onclick="openStoredDocument('${d.fileId}')">${icon('i-eye')}</button>`:'—'} ${documentDeleteActionHtml(d)}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
+ ${inboundMailHintHtml()}
+ <div class="documents-toolbar">${listToolbar('documents')}</div><div class="card documents-workspace">${docs.length?`<button type="button" class="dropzone premium-dropzone" onclick="document.getElementById('docFile').click()">${icon('i-upload')}<strong>Sleep document hierheen</strong><span>of kies bestand</span></button><div class="divider"></div>`:''}<div class="section-head"><div><h2>${phoneLayout()?'Bonnen':'Bestanden'} · ${list.length}${list.length!==state.documents.length?' van '+state.documents.length:''}</h2></div></div><div class="table-wrap mobile-stack-wrap"><table class="table financial-table mobile-stack-table mobile-documents"><thead><tr><th>Naam</th><th>Type</th><th>Datum</th><th>Gekoppeld aan</th><th>Status</th><th></th></tr></thead><tbody>${list.length?list.map(d=>{const link=listLinkedDocumentInfo(d);return `<tr><td>${d.fileId?`<button type="button" class="link-btn document-name-open" onclick="openDocumentPreview('${esc(d.id)}')"><strong>${esc(d.name)}</strong></button>`:`<strong>${esc(d.name)}</strong>`}</td><td>${esc(documentTypeLabel(d.type))}${d.source==='mail'?' · via mail':''}</td><td>${dateNL(d.date)}</td><td>${d.linkedId?(d.linkedType==='expense'&&state.expenses.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="expenseActions('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:d.linkedType==='invoice'&&state.invoices.some(x=>x.id===d.linkedId)?`<button class="link-btn" onclick="viewInvoice('${esc(d.linkedId)}')">${esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')}</button>`:esc([link.party,link.number].filter(Boolean).join(' · ')||'Gekoppeld')):'—'}</td><td>${documentVerificationBadge(d)}</td><td class="right financial-actions">${persistentDocumentReviewActionForFile(d)}${d.verification?`<button class="link-btn" onclick="openDocumentVerification('${d.id}')">Controle</button> `:''}${d.fileId?`<button class="icon-btn" aria-label="Document openen" title="Document openen" onclick="openStoredDocument('${d.fileId}')">${icon('i-eye')}</button>`:'—'} ${documentDeleteActionHtml(d)}</td></tr>`}).join(''):`<tr><td colspan="6">${listEmptyHtml('documents')}</td></tr>`}</tbody></table></div></div>`
 }
 
 function profileCompleteness(){const c=state.company||{},fields=[c.name,c.tradeName,c.kvk,c.vat,c.address,c.postal,c.city,c.email,c.phone,c.website,c.iban,c.bankAccountName,c.invoicePrefix];return Math.round(fields.filter(Boolean).length/fields.length*100)}
@@ -5821,6 +5823,80 @@ function renderEmailConnectionSettings(){
 async function refreshEmailConnectionCard(){
  const el=document.getElementById('emailConnectionCard');if(el)el.outerHTML=renderEmailConnectionSettings()
 }
+// Bonnen mailen (Kwin 2026-11-04, UI-trucs 18): your own address on bon.boekuna.nl. A receipt or invoice
+// sent there as an attachment is stored by the edge function inbound-mail and processed like an upload.
+const INBOUND_MAIL_DOMAIN='bon.boekuna.nl';
+let inboundAddress={local:null,loaded:false,loading:null,error:''};
+function inboundAddressText(){return inboundAddress.local?inboundAddress.local+'@'+INBOUND_MAIL_DOMAIN:''}
+// Test mode has no Supabase: a browser test hands in window.boekunaInboundMailRpc, otherwise the feature stays out of sight.
+function inboundMailAllowed(){return !!currentUser&&planAllows(1)&&(!TEST_MODE_NO_AUTH||typeof window.boekunaInboundMailRpc==='function')}
+async function loadInboundAddress(opts={}){
+ const create=!!opts.create,rotate=!!opts.rotate;
+ if(!inboundMailAllowed())return '';
+ if(inboundAddress.loading&&!rotate)return inboundAddress.loading;
+ const userId=currentUser.id,c=state.company||{};
+ inboundAddress.loading=(async()=>{
+  try{
+   const args={p_hint:c.tradeName||c.name||'',p_company:{name:c.name||'',tradeName:c.tradeName||'',kvk:c.kvk||'',vat:c.vat||''},p_create:create,p_rotate:rotate};
+   const {data,error}=TEST_MODE_NO_AUTH?await window.boekunaInboundMailRpc(args):await (await getSupabase()).rpc('inbound_address_mine',args);
+   if(currentUser?.id!==userId)return '';
+   if(error)throw error;
+   inboundAddress={local:data?String(data):null,loaded:true,loading:null,error:''};
+  }catch(err){
+   console.warn('Mailadres voor bonnen',err?.code||err?.message||err);
+   inboundAddress={...inboundAddress,loaded:true,loading:null,error:/PLAN_REQUIRED/.test(String(err?.message||''))?'plan':'failed'};
+  }
+  document.querySelectorAll('[data-inbound-mail]').forEach(el=>{el.outerHTML=el.dataset.inboundMail==='hint'?inboundMailHintHtml():inboundMailPanelHtml()});
+  return inboundAddressText()
+ })();
+ return inboundAddress.loading
+}
+function inboundMailCopyButton(){
+ return '<button type="button" class="btn small" onclick="copyTextValue(this,inboundAddressText())">Kopiëren</button>'
+}
+// Opening "Bonnen mailen" makes the address the first time; just visiting Instellingen does not.
+async function ensureInboundAddress(){
+ if(!inboundMailAllowed())return '';
+ await inboundAddress.loading;
+ if(inboundAddress.local||inboundAddress.error==='plan')return inboundAddressText();
+ return loadInboundAddress({create:true})
+}
+// Settings: the address, copy and "Nieuw adres".
+function inboundMailPanelHtml(){
+ if(!inboundMailAllowed())return '<div class="card settings-compact" data-inbound-mail="panel"><p class="help">Bonnen mailen hoort bij ZZP en Pro.</p></div>';
+ if(!inboundAddress.loaded||inboundAddress.loading){if(!inboundAddress.loading)void loadInboundAddress();return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel"><p class="help">Je adres wordt opgehaald…</p></div>'}
+ if(!inboundAddress.local)return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel">'+(inboundAddress.error==='plan'?'<p class="help">Bonnen mailen hoort bij ZZP en Pro.</p>':'<p class="inbound-mail-lead">Krijg je eigen mailadres voor bonnen. Stuur een bon of factuur als bijlage door en hij staat in Bonnen.</p>'+(inboundAddress.error?'<p class="help">Dat lukte net niet. Probeer het opnieuw.</p>':'')+'<button type="button" class="btn primary small" onclick="loadInboundAddress({create:true})">Adres maken</button>')+'</div>';
+ return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel">'
+  +'<p class="inbound-mail-lead">Stuur een bon of factuur als bijlage naar dit adres. Hij staat dan in Bonnen, klaar om te controleren.</p>'
+  +'<div class="inbound-mail-address"><span class="inbound-mail-text" translate="no">'+esc(inboundAddressText())+'</span>'+inboundMailCopyButton()+'</div>'
+  +'<p class="help">Pdf of foto, tot 10 bijlagen per mail. Geef het adres alleen aan wie je bonnen stuurt.</p>'
+  +'<button type="button" class="link-btn inbound-mail-new" onclick="renewInboundAddress()">Nieuw adres</button>'
+  +'</div>'
+}
+function renewInboundAddress(){
+ askConfirm('Nieuw adres maken?',{title:'Nieuw adres maken?',text:'Het oude adres werkt dan meteen niet meer.',ok:'Nieuw adres'},async()=>{
+  const old=inboundAddress.local;await loadInboundAddress({rotate:true});
+  toast(inboundAddress.local&&inboundAddress.local!==old?'Nieuw adres gemaakt. Het oude werkt niet meer.':'Een nieuw adres maken lukte niet.')
+ })
+}
+// Bonnen: one quiet line with the address, so nobody has to look for it.
+function inboundMailHintHtml(){
+ if(!inboundMailAllowed())return '';
+ if(!inboundAddress.loaded){if(!inboundAddress.loading)void loadInboundAddress();return '<div data-inbound-mail="hint" hidden></div>'}
+ if(!inboundAddress.local)return '<div class="inbound-mail-hint" data-inbound-mail="hint"><span>Je kunt bonnen ook mailen.</span><button type="button" class="link-btn" onclick="openInboundMailSettings()">Adres maken</button></div>';
+ return '<div class="inbound-mail-hint" data-inbound-mail="hint"><span>Mail bonnen naar <b translate="no">'+esc(inboundAddressText())+'</b></span>'+inboundMailCopyButton()+'</div>'
+}
+function openInboundMailSettings(){
+ if(typeof window.openSettingsSection==='function')window.openSettingsSection('mailin');else navigate('settings')
+}
+// A mail can arrive while the app is closed: picking the app up again starts its processing.
+let documentResumeAt=0;
+function resumeDocumentProcessingSoon(){
+ if(TEST_MODE_NO_AUTH||!currentUser||Date.now()-documentResumeAt<30000)return;
+ documentResumeAt=Date.now();
+ invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resumeDocumentProcessingSoon()});
 async function handleMailboxReturn(){
  const u=new URL(location.href),connected=u.searchParams.get('mail_connected'),err=u.searchParams.get('mail_error');
  if(!connected&&!err)return;
@@ -7167,8 +7243,8 @@ function openDocumentActions(jobId){
  modal('Documentacties',`<div class="action-list">${job.state==='failed'?`<button type="button" class="btn" onclick="closeModal();newExpense()">Handmatig invoeren</button><button type="button" class="btn" onclick="closeModal();replacePersistentDocument(${id})">Ander bestand</button>`:''}<button type="button" class="btn danger" onclick="closeModal();removePersistentDocumentByJob(${id})">Verwijderen</button></div>`)
 }
 function persistentDocumentCardHtml(job,compact=false){
- const st=persistentDocumentJobStatus(job),name=persistentDocumentName(job);
- return '<div class="document-processing-card" data-state="'+esc(job.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+persistentDocumentStatusIcon(job)+'</span><div class="document-processing-card-main"><strong title="'+esc(name)+'">'+esc(name)+'</strong><span><b>'+esc(st.label)+'</b>'+(st.detail?' · '+esc(st.detail):'')+'</span></div><div class="document-processing-card-actions">'+persistentDocumentActionHtml(job,compact)+'</div></div>'
+ const st=persistentDocumentJobStatus(job),name=persistentDocumentName(job),viaMail=String(job.client_ref||'').startsWith('mail-');
+ return '<div class="document-processing-card" data-state="'+esc(job.state)+'"><span class="document-processing-card-icon" aria-hidden="true">'+persistentDocumentStatusIcon(job)+'</span><div class="document-processing-card-main"><strong title="'+esc(name)+'">'+esc(name)+'</strong>'+(viaMail?'<span class="document-mail-tag">via mail</span>':'')+'<span><b>'+esc(st.label)+'</b>'+(st.detail?' · '+esc(st.detail):'')+'</span></div><div class="document-processing-card-actions">'+persistentDocumentActionHtml(job,compact)+'</div></div>'
 }
 function localPersistentProcessingItems(){
  const items=documentProcessingSession?.items||[];
@@ -7210,7 +7286,7 @@ function renderDocumentProcessingBoard(){
 }
 function updateLocalDocumentFromJob(job){
  const ref=String(job?.client_ref||'');let doc=state.documents.find(x=>String(x.fileId||'')===ref),changed=false;
- if(!doc){doc={id:uid('d'),fileId:ref,name:persistentDocumentName(job),type:'Document',date:String(job?.created_at||today()).slice(0,10),size:Number(job?.size_bytes||0),source:'background-upload',analyzed:false,processingState:String(job?.state||'queued')};state.documents.unshift(doc);changed=true}
+ if(!doc){doc={id:uid('d'),fileId:ref,name:persistentDocumentName(job),type:'Document',date:String(job?.created_at||today()).slice(0,10),size:Number(job?.size_bytes||0),source:ref.startsWith('mail-')?'mail':'background-upload',analyzed:false,processingState:String(job?.state||'queued')};state.documents.unshift(doc);changed=true}
  if(!persistentDocumentIsTerminal(job))return changed;
  const analysis=job?.result?.analysis||{},proc=analysis?.processing||{},nextType=analysis.documentType==='receipt'?'Bon':analysis.documentType==='bank_document'?'Bankdocument':String(analysis.documentType||'').includes('invoice')?'Factuur':doc.type||'Document';
  const patch={name:persistentDocumentName(job),size:Number(job?.size_bytes||doc.size||0),type:nextType,analyzed:job.state!=='failed',processingState:job.state,pageCount:Number(analysis.pageCount||proc.pages||doc.pageCount||0)||null,ocrUsed:Array.isArray(proc.ocrPages)&&proc.ocrPages.length>0};
@@ -7320,7 +7396,9 @@ async function initDocumentBackgroundProcessing(){
   if(page==='dashboard'&&document.getElementById('content'))render();
   console.warn('Documentstatus ophalen',err)
  }
+ documentResumeAt=Date.now();
  invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(err=>console.warn('Documentverwerking hervatten',err));
+ void loadInboundAddress();
  void initLocalFirstForUser();
  if(typeof sb?.channel!=='function'){schedulePersistentDocumentPoll();return}
  documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){

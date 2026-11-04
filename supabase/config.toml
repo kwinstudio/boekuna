@@ -1,2 +1,6 @@
 [functions.kvk-company-lookup]
 verify_jwt = true
+
+# Resend calls this webhook without a Supabase JWT; the function checks the Resend signature itself.
+[functions.inbound-mail]
+verify_jwt = false
