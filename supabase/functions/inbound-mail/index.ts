@@ -13,7 +13,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 // The Resend key and the webhook signing secret: edge secrets when set, otherwise Supabase Vault
-// (inbound_mail_resend_api_key, inbound_mail_webhook_secret) through a service-only RPC.
+// (inbound_mail_resend_api_key, inbound_mail_webhook_secret) through a service-only RPC. Without a
+// stored signing secret the function asks Resend for the one of its own webhook, with the key.
 const ENV_RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || "";
 const ENV_WEBHOOK_SECRET = Deno.env.get("RESEND_INBOUND_WEBHOOK_SECRET") || "";
 const DOMAINS = new Set(String(Deno.env.get("INBOUND_DOMAINS") || "bon.boekuna.nl").toLowerCase().split(",").map((d) => d.trim()).filter(Boolean));
@@ -89,21 +90,35 @@ function fileName(a: any, i: number) {
   return `bon-${i + 1}.${ext}`;
 }
 
-let cachedSecrets: { resendKey: string; webhookSecret: string } | null = null;
-async function secrets(sb: any) {
-  if (ENV_RESEND_API_KEY && ENV_WEBHOOK_SECRET) return { resendKey: ENV_RESEND_API_KEY, webhookSecret: ENV_WEBHOOK_SECRET };
-  if (cachedSecrets) return cachedSecrets;
-  const { data, error } = await sb.rpc("inbound_mail_secrets");
-  const row = Array.isArray(data) ? data[0] : data;
-  const found = { resendKey: ENV_RESEND_API_KEY || String(row?.resend_api_key || ""), webhookSecret: ENV_WEBHOOK_SECRET || String(row?.webhook_secret || "") };
-  if (!error && found.resendKey && found.webhookSecret) cachedSecrets = found;
-  return found;
-}
-
 async function resend(path: string, key: string) {
   const r = await fetch(RESEND_API + path, { headers: { Authorization: "Bearer " + key }, signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw Object.assign(new Error("RESEND_" + r.status), { retry: r.status === 429 || r.status >= 500 });
   return await r.json();
+}
+
+// The signing secret of the Resend webhook that points at this function.
+async function ownWebhookSecret(key: string) {
+  const self = (SUPABASE_URL.replace(/\/$/, "") + "/functions/v1/inbound-mail").toLowerCase();
+  const list = (await resend("/webhooks", key))?.data || [];
+  const mine = list.filter((w: any) => String(w?.status || "enabled") === "enabled" && (w?.events || []).includes("email.received") && String(w?.endpoint || "").replace(/\/+$/, "").toLowerCase().endsWith("/functions/v1/inbound-mail"))
+    .sort((a: any, b: any) => Number(String(b.endpoint).toLowerCase().startsWith(self)) - Number(String(a.endpoint).toLowerCase().startsWith(self)))[0];
+  if (!mine?.id) return "";
+  return String((await resend("/webhooks/" + encodeURIComponent(mine.id), key))?.signing_secret || "");
+}
+
+let cachedSecrets: { resendKey: string; webhookSecret: string } | null = null;
+let lookupFailedAt = 0;
+async function secrets(sb: any) {
+  if (ENV_RESEND_API_KEY && ENV_WEBHOOK_SECRET) return { resendKey: ENV_RESEND_API_KEY, webhookSecret: ENV_WEBHOOK_SECRET };
+  if (cachedSecrets) return cachedSecrets;
+  if (Date.now() - lookupFailedAt < 60_000) return { resendKey: "", webhookSecret: "" }; // not on every request
+  const { data, error } = await sb.rpc("inbound_mail_secrets");
+  const row = Array.isArray(data) ? data[0] : data;
+  const found = { resendKey: ENV_RESEND_API_KEY || String(row?.resend_api_key || ""), webhookSecret: ENV_WEBHOOK_SECRET || String(row?.webhook_secret || "") };
+  if (!error && found.resendKey && !found.webhookSecret) found.webhookSecret = await ownWebhookSecret(found.resendKey).catch(() => "");
+  if (!error && found.resendKey && found.webhookSecret) cachedSecrets = found;
+  else lookupFailedAt = Date.now();
+  return found;
 }
 
 async function storeFor(sb: any, target: any, data: any, attachments: any[]) {

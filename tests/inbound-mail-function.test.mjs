@@ -154,6 +154,27 @@ const json=r=>r.json();
  assert.equal(db.calls.filter(c=>c[1]==='inbound_mail_secrets').length,1,'Read once, then kept');
 }
 {
+ // Only the Resend key stored: the signing secret comes from Resend, from the webhook that points here.
+ const db=fakeDb({resend_api_key:'re_test',webhook_secret:''}),net=fakeFetch(),asked=[];
+ const fetchImpl=async(url,init={})=>{
+  const u=String(url);
+  if(u==='https://api.resend.test/webhooks'){asked.push('list');return new Response(JSON.stringify({data:[
+   {id:'wh_other',endpoint:'https://elders.example/hook',events:['email.received'],status:'enabled'},
+   {id:'wh_sent',endpoint:'https://db.test/functions/v1/inbound-mail',events:['email.sent'],status:'enabled'},
+   {id:'wh_1',endpoint:'https://db.test/functions/v1/inbound-mail',events:['email.received'],status:'enabled'}]}))}
+  if(u==='https://api.resend.test/webhooks/wh_1'){asked.push('wh_1');assert.equal(init.headers?.Authorization,'Bearer re_test');return new Response(JSON.stringify({id:'wh_1',signing_secret:secret}))}
+  return net.fetchImpl(url,init);
+ };
+ const handler=await loadEdgeFunction(dir,{env:{SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service-key',RESEND_API_URL:'https://api.resend.test'},supabase:db.supabase,fetchImpl});
+ const body=received('mail-9',[LOCAL+'@bon.boekuna.nl']);
+ const ok=await handler(new Request('https://fn.test',{method:'POST',headers:sign(body),body}));
+ assert.deepEqual((await json(ok)).outcomes,['stored']);
+ assert.deepEqual(asked,['list','wh_1'],'Only the webhook for this function and for received mail');
+ const body2=received('mail-10',[LOCAL+'@bon.boekuna.nl']);
+ await handler(new Request('https://fn.test',{method:'POST',headers:sign(body2),body:body2}));
+ assert.deepEqual(asked,['list','wh_1'],'Looked up once, then kept');
+}
+{
  // Vault empty too: still not configured.
  const db=fakeDb({resend_api_key:'re_test',webhook_secret:''});
  const handler=await loadEdgeFunction(dir,{env:{SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service-key'},supabase:db.supabase,fetchImpl:async()=>{throw new Error('no network')}});
