@@ -415,6 +415,9 @@
     var end=function(e){
       if(!drag||e.pointerId!==drag.id)return;
       var d=drag;drag=null;
+      finish(d);
+    };
+    function finish(d){
       if(!d.dialog.classList.contains('is-dragging'))return;
       d.dialog.classList.remove('is-dragging');
       if(d.dy>110||(d.v>.6&&d.dy>40)){ // far enough, or a quick flick
@@ -426,7 +429,39 @@
         return;
       }
       settle(d.dialog);
-    };
+    }
+    // UI-trucs 14 (Kwin 2026-11-04, Apple "Sheets"): when the sheet is scrolled to the top, a pull down anywhere on it closes
+    // it too, not only on its head. Touch events, so the pull can take over from scrolling (preventDefault) once it starts.
+    var pull=null;
+    function scrolledAbove(target,dialog){for(var n=target;n&&n.nodeType===1;n=n.parentElement){if(n.scrollTop>0)return true;if(n===dialog)return false}return false}
+    function pullMove(dialog,dy){
+      dialog.classList.add('is-dragging');dialog.style.transform='translateY('+dy+'px)';
+      var backdrop=dialog.closest('.modal-backdrop');if(backdrop)backdrop.style.setProperty('--sheet-dim',String(Math.max(.2,1-dy/(dialog.offsetHeight||600))));
+    }
+    document.addEventListener('touchstart',function(e){
+      pull=null;
+      if(!phone.matches||reduced.matches||drag||e.touches.length!==1)return;
+      var target=e.target,dialog=target.closest&&target.closest('#modalRoot .modal');
+      if(!isSheet(dialog)||target.closest('.modal-head')||target.closest('input,select,textarea,[contenteditable],canvas,.list-chip-row,.choice-chips,.quick-tiles,[data-no-sheet-pull]'))return;
+      if(scrolledAbove(target,dialog))return;
+      var t=e.touches[0];pull={dialog:dialog,target:target,x:t.clientX,y:t.clientY,t:performance.now(),dy:0,v:0,on:false};
+    },{capture:true,passive:true});
+    document.addEventListener('touchmove',function(e){
+      if(!pull)return;
+      var t=e.touches[0],dx=t.clientX-pull.x,dy=t.clientY-pull.y,now=performance.now();
+      if(!pull.on){
+        if(dy<-4||Math.abs(dx)>Math.abs(dy)+4){pull=null;return} // scrolling up or sideways: not a pull
+        if(dy<10)return;
+        if(scrolledAbove(pull.target,pull.dialog)){pull=null;return}
+        pull.on=true;pull.y=t.clientY-10;
+      }
+      e.preventDefault();
+      var d=Math.max(0,t.clientY-pull.y);pull.v=(d-pull.dy)/Math.max(1,now-pull.t);pull.dy=d;pull.t=now;
+      pullMove(pull.dialog,d);
+    },{capture:true,passive:false});
+    var pullEnd=function(){if(!pull)return;var p=pull;pull=null;if(p.on)finish(p)};
+    document.addEventListener('touchend',pullEnd,true);
+    document.addEventListener('touchcancel',pullEnd,true);
     function settle(dialog){
       dialog.classList.add('is-settling');dialog.style.transform='';
       var backdrop=dialog.closest('.modal-backdrop');if(backdrop)backdrop.style.removeProperty('--sheet-dim');

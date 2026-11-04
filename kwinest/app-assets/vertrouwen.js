@@ -279,12 +279,18 @@
     var list=chosen();if(!list.length)return;
     var st=g('state')||{};
     var risky=list.filter(function(e){return (fn('closedVatQuarterLabel')&&window.closedVatQuarterLabel(e.date))||(st.transactions||[]).some(function(t){return t.status==='matched'&&t.matchType==='expense'&&t.matchId===e.id})});
-    if(risky.length&&!window.confirm(plural(list.length,'kosten','kosten')+' weghalen? Ze tellen dan niet meer mee. In je administratie blijft zichtbaar dat ze er waren.\n\n'+plural(risky.length,'ervan hoort','ervan horen')+' bij een afgesloten btw-periode of een bankbetaling. Een bankkoppeling wordt losgemaakt; heb je al aangifte gedaan, neem het verschil dan mee in je volgende aangifte.'))return;
+    var question=plural(list.length,'kosten','kosten')+' weghalen? Ze tellen dan niet meer mee. In je administratie blijft zichtbaar dat ze er waren.',why=plural(risky.length,'ervan hoort','ervan horen')+' bij een afgesloten btw-periode of een bankbetaling. Een bankkoppeling wordt losgemaakt; heb je al aangifte gedaan, neem het verschil dan mee in je volgende aangifte.';
+    if(!risky.length)return removeNow();
+    // UI-trucs 5: the app's own sheet instead of the browser's pop-up (falls back to confirm without klopt.js).
+    if(fn('askConfirm'))window.askConfirm(question+'\n\n'+why,{title:plural(list.length,'kosten','kosten')+' weghalen?',text:'Ze tellen dan niet meer mee. In je administratie blijft zichtbaar dat ze er waren. '+why,ok:'Weghalen'},removeNow);
+    else if(window.confirm(question+'\n\n'+why))removeNow();
+    function removeNow(){
     var corrections=list.map(function(e){return [e.id,window.reverseExpenseBooking(e).id]});
     done(plural(list.length,'kosten','kosten')+' weggehaald',risky.length?null:function(){
       corrections.forEach(function(c){var at=st.expenses.findIndex(function(x){return x.id===c[1]}),orig=expense(c[0]);if(at<0||!orig)return;st.expenses.splice(at,1);delete orig.correctedAt;delete orig.correctedBy});
       call('logEvent','Weghalen teruggedraaid',plural(corrections.length,'kosten','kosten'),'expense','');call('save');call('render');toast('Kosten teruggezet');
     });
+    }
   }
 
   /* ---------- After each render: the small extra blocks ---------- */

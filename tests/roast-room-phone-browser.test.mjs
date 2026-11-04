@@ -65,7 +65,7 @@ try{
   assert.equal(pct,50,'€ 300 now against € 200 on the same dates last month');
 
   // U3: three round buttons on the overview; Nieuw has three tiles and three rows.
-  assert.deepEqual((await page.locator('#content .r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank']);
+  assert.deepEqual((await page.locator('#content .r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon scannen','Bank']);
   await page.locator('#quickNew').click();
   const rows=(await page.locator('#modalRoot .quick-rows .quick-action strong').allTextContents()).map(s=>s.trim());
   assert.deepEqual(rows.slice(0,3),['Uploaden','Rit','Uren'],'Rows: '+rows.join(', '));

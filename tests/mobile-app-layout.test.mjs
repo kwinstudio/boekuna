@@ -150,7 +150,7 @@ try{
   await page.locator('.nav-item[data-page="documents"]').click();
   await page.locator('#pageTitle').filter({hasText:'Bonnen'}).waitFor();
   const scanChooserEvent=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'Bon scannen',exact:true}).click();
+  await page.locator('#content .empty').getByRole('button',{name:'Bon scannen',exact:true}).click(); // the band above has the same action under the same name
   const scanChooser=await scanChooserEvent;
   assert.equal(scanChooser.isMultiple(),true,'Document upload supports multiple documents');
   assert.equal(await page.locator('.source-picker').count(),0,'Document upload opens the native chooser directly');
