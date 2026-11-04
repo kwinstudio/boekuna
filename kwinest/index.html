@@ -5883,6 +5883,7 @@ function renewInboundAddress(){
 function inboundMailHintHtml(){
  if(!inboundMailAllowed())return '';
  if(!inboundAddress.loaded){if(!inboundAddress.loading)void loadInboundAddress();return '<div data-inbound-mail="hint" hidden></div>'}
+ if(!inboundAddress.local&&inboundAddress.error)return '<div data-inbound-mail="hint" hidden></div>'; // no offer when the address cannot be read right now
  if(!inboundAddress.local)return '<div class="inbound-mail-hint" data-inbound-mail="hint"><span>Je kunt bonnen ook mailen.</span><button type="button" class="link-btn" onclick="openInboundMailSettings()">Adres maken</button></div>';
  return '<div class="inbound-mail-hint" data-inbound-mail="hint"><span>Mail bonnen naar <b translate="no">'+esc(inboundAddressText())+'</b></span>'+inboundMailCopyButton()+'</div>'
 }

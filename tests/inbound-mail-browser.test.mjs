@@ -117,6 +117,17 @@ try{
     await context.close();
   }
   {
+    // The address cannot be read (server or network trouble): Bonnen stays quiet instead of offering it.
+    const {context,page}=await openApp();
+    await page.evaluate(()=>{window.boekunaInboundMailRpc=async()=>({data:null,error:{message:'Could not find the function'}})});
+    await page.evaluate(()=>navigate('documents'));
+    await page.locator('#content .documents-workspace').waitFor();
+    await page.waitForFunction(()=>inboundAddress.loaded&&!inboundAddress.loading);
+    assert.equal(await page.evaluate(()=>inboundAddress.error),'failed');
+    assert.equal(await page.locator('#content .inbound-mail-hint').count(),0,'No offer when the address cannot be read');
+    await context.close();
+  }
+  {
     // Desktop: the list says "via mail" next to the kind of document; the same panel in the settings column.
     const {context,page}=await openApp({width:1280});
     await page.evaluate(()=>{state.documents.unshift({id:'dm',fileId:'mail-em2-att1',name:'Factuur KPN.pdf',type:'Factuur',date:'2026-11-12',source:'mail'});navigate('documents')});
