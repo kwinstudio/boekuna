@@ -78,7 +78,7 @@ try{
   const empty=page.locator('#content .empty').first();
   assert.match(await empty.innerText(),/Nog geen kosten in deze periode/);
   assert.equal(await empty.locator('.empty-icon').count(),1);
-  assert.equal(await empty.locator('.btn.primary',{hasText:'Bonnetje scannen'}).count(),1);
+  assert.equal(await empty.locator('.btn.primary',{hasText:'Bon scannen'}).count(),1);
   // 6. All done.
   await page.evaluate(()=>{state.expenses=[];state.invoices=[];navigate('dashboard')});
   await page.locator('.calm-list').waitFor();
@@ -111,7 +111,7 @@ try{
     assert.equal(hero.bg,'none','The band lets the screen colour through');
     assert.equal(hero.barBg,'rgba(0, 0, 0, 0)','The top bar lets the screen colour through');
     assert.ok(hero.pickTop>=hero.winstBottom&&hero.pickRight<=390,'The period button sits under Winst: '+JSON.stringify(hero));
-    assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon','Bank']);
+    assert.deepEqual((await page.locator('.r1d-action').allInnerTexts()).map(s=>s.trim()),['Factuur','Bon scannen','Bank']);
     assert.equal(await page.locator('.dashboard-kpis-calm .dashboard-kpi').count(),1,'Only the Winst block');
     assert.deepEqual((await page.locator('.r1d-bento .calm-label').allTextContents()).map(s=>s.trim()).slice(0,3),['Omzet','Kosten','Te ontvangen']);
     assert.match(await page.locator('.r1d-bento .calm-label').nth(3).innerText(),/^(Vrij te besteden|Btw Q[1-4])$/,'The fourth block is Vrij, or the btw of the quarter that is due');

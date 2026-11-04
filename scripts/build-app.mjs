@@ -389,7 +389,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261022b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261102b"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261022c"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261104a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/recurring-invoices.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/qrcode.js?v=20261023a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/theme.js?v=20261009i"></script>\n');
@@ -397,7 +397,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/feedback.js?v=2
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/document-viewer.js?v=20261008f"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/native-local-first.js?v=20261008a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/sortable.min.js?v=1.15.6" defer></script>\n<script src="/assets/look.js?v=20261102a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261102a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/motion.js?v=20261104a"></script>\n');
 // Press feel (Kwin 2026-10-26): buttons sink under a finger and tick on a phone. Its stylesheet goes last in the document's
 // own <head> (the first </head>; later ones sit inside print templates in the script).
 {const headEnd=appHtml.indexOf('</head>');if(headEnd<0)throw new Error('Missing app document marker: </head>');
@@ -415,13 +415,17 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/desktop.js?v=20
 // Vertrouwen (Kwin 2026-11-01, "slechte reviews concurrenten" 1-3, 5, 7-10): price promise, cancelling, btw checks,
 // several costs at once and calm to-dos. After the app's own scripts, since it wraps a few of their functions.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/vertrouwen.css?v=20261101a">\n'+appHtml.slice(headEnd);}
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/vertrouwen.js?v=20261101a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/vertrouwen.js?v=20261104a"></script>\n');
 // Psychologische trucjes (Kwin 2026-11-01): the scan shows its steps with a bar, how long things take, the quarter bar, a fresh
 // start and a fixed bonnenmoment, what a bon is worth, a calm end after sending. Last, so it wraps the app as the others left it.
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/gevoel.css?v=20261102a">\n'+appHtml.slice(headEnd);}
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/gevoel.js?v=20261101a"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/gevoel.js?v=20261104a"></script>\n');
 {const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/helder.css?v=20261102a">\n<link rel="stylesheet" href="/assets/zoeken.css?v=20261102a">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/helder.js?v=20261101b"></script>\n');
+// UI-trucs (Kwin 2026-11-04): Revolut, iPhone and competitor patterns so every screen says one thing one way. Last in the head
+// and last in the body: the ask sheet, small cents everywhere, links without underline, the title that stays when you scroll.
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/klopt.css?v=20261104a">\n'+appHtml.slice(headEnd);}
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/klopt.js?v=20261104a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});
 fs.mkdirSync(target,{recursive:true});
@@ -451,7 +455,7 @@ for(const asset of ['boekuna-app-favicon.svg','document-review-v2.js','document-
   if(!fs.existsSync(sourceFile))throw new Error('Missing app-only review asset: '+asset);
   fs.copyFileSync(sourceFile,path.join(appAssetsTarget,asset));
 }
-for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js','vertrouwen.css','vertrouwen.js','gevoel.css','gevoel.js','helder.css','helder.js','zoeken.css'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
+for(const asset of ['press.css','press.js','handig.css','handig.js','vegen.js','desktop.css','desktop.js','vertrouwen.css','vertrouwen.js','gevoel.css','gevoel.js','helder.css','helder.js','zoeken.css','klopt.css','klopt.js'])fs.copyFileSync(path.join(root,'kwinest','app-assets',asset),path.join(appAssetsTarget,asset));
 
 // Assistant integration is app-only. Keep shared public mobile assets byte-identical
 // to the marketing source and patch only the generated product artifact.

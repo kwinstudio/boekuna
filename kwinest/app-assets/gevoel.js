@@ -160,16 +160,20 @@
     var st=appState();if(!st||!((st.expenses||[]).length||(st.invoices||[]).length))return '';
     var now=window.__gevoelNow?new Date(window.__gevoelNow):new Date(),work=openWork(),qi=quarterInfo(now),fresh=freshStart(now),title,detail='',cta='',action='gevoelOpenWork()',kind='';
     var total=qi.done+work.total,pct=total?Math.round(qi.done/total*100):100;
+    // UI-trucs 1 (Kwin 2026-11-04): "helemaal bij" only when nothing at all needs you. With a late invoice or a btw deadline
+    // in the alert right under this line, only the bonnen and bank lines are done.
+    var urgent=0;try{urgent=(app('phoneUrgentItems')?app('phoneUrgentItems')():[]).length}catch(e){urgent=0}
+    var bij=urgent?(work.total===0&&(st.transactions||[]).length?'Je bonnen en bank zijn bij':'Je bonnen zijn bij'):'Je bent helemaal bij';
     if(momentNow(now)){
-      kind='moment';title='Het is je bonnenmoment';detail=work.total?todoText(work)+'.':'Je bent al helemaal bij. Lekker.';cta=work.total?'Beginnen':'';
+      kind='moment';title='Het is je bonnenmoment';detail=work.total?todoText(work)+'.':(urgent?bij+'.':'Je bent al helemaal bij. Lekker.');cta=work.total?'Beginnen':'';
     }else if(fresh){
       kind='fresh';title=fresh.kind==='maand'?'Nieuwe maand, schone lei':'Nieuw kwartaal, schone lei';
-      detail=work.total?(fresh.prev.charAt(0).toUpperCase()+fresh.prev.slice(1))+' even afronden? '+todoText(work)+'.':(fresh.kind==='maand'?'Je bent helemaal bij.':fresh.prev+' is helemaal bij.');
+      detail=work.total?(fresh.prev.charAt(0).toUpperCase()+fresh.prev.slice(1))+' even afronden? '+todoText(work)+'.':(urgent?bij+'.':fresh.kind==='maand'?'Je bent helemaal bij.':fresh.prev+' is helemaal bij.');
       cta=work.total?'Afronden':'';
     }else if(work.total){
       kind='progress';title='Q'+qi.q+' · '+qi.done+' van '+total+' geregeld';detail=todoText(work)+'.';cta='Verder';
     }else{
-      kind='clear';title='Je bent helemaal bij';detail=qi.done?'Q'+qi.q+' · '+plural(qi.done,'bon','bonnen')+' geregeld':'';
+      kind='clear';title=bij;detail=qi.done?'Q'+qi.q+' · '+plural(qi.done,'bon','bonnen')+' geregeld':'';
     }
     // Implementation intention: when nothing needs you and no moment is set yet, offer one quietly.
     var plan=!moment()&&kind==='clear'?'<button type="button" class="gv-calm-plan" onclick="event.stopPropagation();gevoelPlanMoment()">Vast moment kiezen</button>':'';

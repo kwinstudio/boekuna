@@ -89,7 +89,8 @@
     toast('Je mail-app opent. Bewaar de PDF en voeg hem toe.');
   };
   window.setQuoteStatus=function(id,status){var q=find(id);if(!q)return;q.status=status;q.updatedAt=new Date().toISOString();logEvent('Offerte '+statusLabel(q).toLowerCase(),q.number,'quote',q.id);save();render();quoteActions(id)};
-  window.deleteQuote=function(id){var q=find(id);if(!q)return;if(!confirm('Offerte '+q.number+' verwijderen?'))return;state.quotes=quotes().filter(function(x){return x.id!==id});logEvent('Offerte verwijderd',q.number,'quote',id);save();closeModal();render();toast('Offerte verwijderd')};
+  window.deleteQuote=function(id){var q=find(id);if(!q)return;var go=function(){state.quotes=quotes().filter(function(x){return x.id!==id});logEvent('Offerte verwijderd',q.number,'quote',id);save();closeModal();render();toast('Offerte verwijderd')};
+    if(typeof askConfirm==='function')askConfirm('Offerte '+q.number+' verwijderen?',{title:'Offerte '+q.number+' verwijderen?',ok:'Verwijderen'},go);else if(confirm('Offerte '+q.number+' verwijderen?'))go()};
   window.quoteToInvoice=function(id){
     var q=find(id);if(!q)return;
     q.status='accepted';q.invoicedAt=new Date().toISOString();save();
