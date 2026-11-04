@@ -10,6 +10,18 @@ on:
         description: "Build number to check (empty = newest)"
         type: string
         default: ""
+      contact_first:
+        description: "Beta review contact: first name (only sent to Apple)"
+        type: string
+        default: ""
+      contact_last:
+        description: "Beta review contact: last name (only sent to Apple)"
+        type: string
+        default: ""
+      contact_phone:
+        description: "Beta review contact: phone (only sent to Apple)"
+        type: string
+        default: ""
 permissions:
   contents: read
 concurrency:
@@ -39,4 +51,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TARGET_BUILD: ${{ inputs.target_build || '12' }}
+          CONTACT_FIRST: ${{ inputs.contact_first }}
+          CONTACT_LAST: ${{ inputs.contact_last }}
+          CONTACT_PHONE: ${{ inputs.contact_phone }}
         run: node fotoswipe/scripts/asc-share.mjs

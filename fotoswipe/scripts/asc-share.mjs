@@ -66,14 +66,14 @@ for (const [locale, description] of Object.entries(text)) {
   } catch (e) { parts.push(`tester text ${locale}: ${e.message}`); }
 }
 
-// 2. Contact for Apple's beta review: keeps what is already filled in.
+// 2. Contact for Apple's beta review: from the run's inputs (never stored in the repo), else what is already filled in.
 const detail = (await api(`/v1/apps/${APP_ID}/betaAppReviewDetail`)).data;
 const a = detail.attributes || {};
 const want = {
   contactEmail: a.contactEmail || EMAIL,
-  contactFirstName: a.contactFirstName || '',
-  contactLastName: a.contactLastName || '',
-  contactPhone: a.contactPhone || '',
+  contactFirstName: (process.env.CONTACT_FIRST || '').trim() || a.contactFirstName || '',
+  contactLastName: (process.env.CONTACT_LAST || '').trim() || a.contactLastName || '',
+  contactPhone: (process.env.CONTACT_PHONE || '').trim() || a.contactPhone || '',
   demoAccountRequired: false,
   notes: 'No account needed. Grant photo access when asked. Swiping never deletes anything by itself; deletion happens only after review and confirmation in the iOS dialog. Everything runs on-device.',
 };
