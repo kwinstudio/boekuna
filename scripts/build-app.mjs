@@ -388,7 +388,7 @@ appHtml=appHtml.replace(assistantRuntimeMarker,'\n<script>\n'+releaseRuntime+'co
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-product.js?v=20261022a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/mobile-flow-simplification.js?v=20261022b"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/calm-ux.js?v=20261007a"></script>\n');
-appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261102b"></script>\n');
+appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/settings-center.js?v=20261104a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/quotes.js?v=20261104a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/recurring-invoices.js?v=20261028a"></script>\n');
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/qrcode.js?v=20261023a"></script>\n');
@@ -424,7 +424,7 @@ appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/gevoel.js?v=202
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/helder.js?v=20261101b"></script>\n');
 // UI-trucs (Kwin 2026-11-04): Revolut, iPhone and competitor patterns so every screen says one thing one way. Last in the head
 // and last in the body: the ask sheet, small cents everywhere, links without underline, the title that stays when you scroll.
-{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/klopt.css?v=20261104a">\n'+appHtml.slice(headEnd);}
+{const headEnd=appHtml.indexOf('</head>');appHtml=appHtml.slice(0,headEnd)+'<link rel="stylesheet" href="/assets/klopt.css?v=20261104b">\n'+appHtml.slice(headEnd);}
 appHtml=injectBeforeLast(appHtml,'</body>','<script src="/assets/klopt.js?v=20261104a"></script>\n');
 
 fs.rmSync(target,{recursive:true,force:true});

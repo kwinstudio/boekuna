@@ -44,6 +44,7 @@ on:
       - "tests/vegen-browser.test.mjs"
       - "kwinest/app-assets/klopt.*"
       - "tests/ui-trucs-browser.test.mjs"
+      - "tests/inbound-mail-browser.test.mjs"
       - "kwinest/app-assets/vertrouwen.*"
       - "kwinest/app-assets/feedback.*"
       - "tests/vertrouwen-browser.test.mjs"
@@ -314,6 +315,10 @@ jobs:
         run: |
           node tests/ui-trucs-browser.test.mjs
           BOOKUNA_BROWSER=webkit node tests/ui-trucs-browser.test.mjs
+      - name: Bonnen mailen (adres in Instellingen, regel in Bonnen, via mail in de lijst) — Chromium and WebKit
+        run: |
+          node tests/inbound-mail-browser.test.mjs
+          BOOKUNA_BROWSER=webkit node tests/inbound-mail-browser.test.mjs
       - name: Vertrouwen (prijsbelofte, opzeggen, btw nakijken, meerdere kosten tegelijk, rustige to-dos) — Chromium and WebKit
         run: |
           node tests/vertrouwen-browser.test.mjs

@@ -42,6 +42,8 @@ on:
       - "tests/developer-mode-document-chain.test.py"
       - "tests/receipt-math.test.py"
       - "tests/financial-blocks.test.py"
+      - "tests/inbound-mail-sql.test.mjs"
+      - "tests/inbound-mail-function.test.mjs"
       - ".github/workflows/boekuna-backend.yml"
 
 env:
@@ -92,6 +94,8 @@ jobs:
           }
       - name: Tenant isolation regression
         run: node tests/tenant-isolation.test.mjs
+      - name: Bonnen mailen edge function (signature, attachments, replay, limits)
+        run: node tests/inbound-mail-function.test.mjs
       - name: Install Node regression dependencies
         run: npm ci --prefix tests --ignore-scripts
       - name: Tester invite-code PostgreSQL state machine
@@ -110,6 +114,8 @@ jobs:
         run: node tests/pricing-v2-billing.test.mjs
       - name: Pricing V2 PostgreSQL migration
         run: node tests/pricing-v2-sql.test.mjs
+      - name: Bonnen mailen PostgreSQL migration (addresses, rotation, plan gate, RLS)
+        run: node tests/inbound-mail-sql.test.mjs
       - name: Account deletion stops Stripe billing first
         run: node tests/account-closure.test.mjs
       - name: Account deletion works from the app (CORS)

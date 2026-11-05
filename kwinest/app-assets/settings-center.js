@@ -11,6 +11,7 @@
     business:'<path d="M4 20V6l8-3 8 3v14"/><path d="M9 20v-5h6v5"/><path d="M8 9h.01M12 9h.01M16 9h.01"/>',
     invoices:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/>',
     email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+    mailin:'<path d="M4 13V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7"/><path d="m4 6 8 6 8-6"/><path d="M8 20h8M12 14v6"/><path d="m9 17 3 3 3-3"/>',
     notifications:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
     app:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/>',
     security:'<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
@@ -153,6 +154,7 @@
     return draft;
   }
 
+  function mailinPanel(){return typeof inboundMailPanelHtml==='function'?inboundMailPanelHtml():''}
   function emailPanel(){
     var m=mail(),c=company();
     var basis='<div class="form-grid">'
@@ -325,6 +327,8 @@
       {group:'Je bedrijf',key:'business',title:'Mijn bedrijf',desc:'Bedrijfsgegevens, KVK en betaalgegevens',status:missing.length?(missing.length===1?'1 ontbreekt':missing.length+' ontbreken'):'Compleet',tone:missing.length?'warn':'good',render:businessPanel},
       {group:'Je bedrijf',key:'invoices',title:'Facturen',desc:'Nummering, betaaltermijn en layout',status:Number(c.paymentDays||14)+' dagen',render:invoicesPanel},
       {group:'Je bedrijf',key:'email',title:'E-mail & delen',desc:'Het bericht bij je facturen',status:'',render:emailPanel},
+      // Bonnen mailen (Kwin 2026-11-04, UI-trucs 18): only with bookkeeping (ZZP, Pro).
+      {group:'Je bedrijf',key:'mailin',title:'Bonnen mailen',desc:'Je eigen adres voor bonnen en facturen',status:typeof inboundAddressText==='function'&&inboundAddressText()?'Aan':'',hidden:!(typeof inboundMailAllowed==='function'&&inboundMailAllowed()),render:mailinPanel},
       {group:'App',key:'notifications',title:'Meldingen',desc:'Wat je ziet onder "Nog te doen"',status:on===ATTENTION_TYPES.length?'':on+' van '+ATTENTION_TYPES.length+' aan',render:notificationsPanel},
       {group:'App',key:'app',title:'App & weergave',desc:'Weergave, startpagina en extra uitleg',status:themeLabel(),render:appPanel},
       {group:'Account',key:'security',title:'Beveiliging & privacy',desc:'Tweestapsverificatie en wachtwoord',status:mfaEnabled===true?'Tweestap aan':mfaEnabled===false?'Tweestap uit':'',tone:mfaEnabled===false?'warn':'',render:securityPanel},
@@ -333,7 +337,7 @@
       {group:'Account',key:'help',title:'Hulp & feedback',desc:'Feedback geven, je meldingen en hulp',status:'',render:helpPanel},
       {group:'Account',key:'account',title:'E-mail & uitloggen',desc:'Je inlog-e-mail en uitloggen',status:'',render:accountPanel},
       {group:'',key:'danger',title:'Gevaarzone',desc:'Administratie wissen of account verwijderen',status:'',danger:true,render:dangerPanel}
-    ];
+    ].filter(function(s){return !s.hidden});
   }
 
   // Phone: who you are and your plan on top of the index (Kwin's pick, 2026-10-09); a tap opens Mijn bedrijf.
@@ -367,7 +371,7 @@
 
   // Instellingen on a phone, voorstel B (Kwin 2026-10-21). Since 2026-11-02 the search is the magnifier top right (headerSearch), which calls boekunaSettingsSearch.
   // Everything else stays in the list under it ("Alle instellingen"); the search filters that list.
-  var SEARCH_WORDS={business:'bedrijf kvk iban adres btw-nummer bank naam',invoices:'factuur facturen nummer nummering betaaltermijn layout logo kleur',email:'mail e-mail bericht delen sjabloon',notifications:'meldingen nog te doen herinnering',app:'thema donker licht weergave startpagina uitleg',security:'wachtwoord tweestap mfa privacy beveiliging',data:'export backup back-up herstel csv',billing:'abonnement plan betalen prijs gebruik',help:'hulp feedback vraag',account:'account uitloggen e-mailadres',danger:'verwijderen wissen gevaar'};
+  var SEARCH_WORDS={mailin:'mail mailen bon bonnen doorsturen adres inbox',business:'bedrijf kvk iban adres btw-nummer bank naam',invoices:'factuur facturen nummer nummering betaaltermijn layout logo kleur',email:'mail e-mail bericht delen sjabloon',notifications:'meldingen nog te doen herinnering',app:'thema donker licht weergave startpagina uitleg',security:'wachtwoord tweestap mfa privacy beveiliging',data:'export backup back-up herstel csv',billing:'abonnement plan betalen prijs gebruik',help:'hulp feedback vraag',account:'account uitloggen e-mailadres',danger:'verwijderen wissen gevaar'};
   function quickHtml(){
     if(!window.matchMedia('(max-width:820px)').matches)return '';
     var tile=function(key,label){return '<button type="button" class="settings-quick-tile" data-settings-open="'+key+'">'+icon(key)+'<strong>'+esc(label)+'</strong></button>'};
@@ -436,6 +440,7 @@
     if(window.matchMedia('(max-width:820px)').matches)window.scrollTo({top:0,behavior:'instant'});
     if(!opts||opts.focus!==false){var h=panel.querySelector('h2');if(h)h.focus({preventScroll:true})}
     if(key==='security')loadMfaStatus();
+    if(key==='mailin'&&typeof ensureInboundAddress==='function')ensureInboundAddress();
     if(key==='help'&&window.BoekunaFeedback)window.BoekunaFeedback.refreshPanelReports();
   }
 
