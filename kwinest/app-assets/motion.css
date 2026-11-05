@@ -145,4 +145,12 @@ html.boekuna-motion :is(.metric-value,.dashboard-summary-value){font-variant-num
 @media (max-width:820px){
   html.boekuna-motion #content .mobile-card-list>.mobile-card-row{content-visibility:auto;contain-intrinsic-size:auto 89px}
   html.boekuna-motion #content :is(.mobile-invoices,.mobile-expenses,.mobile-bank,.mobile-documents)>tbody>tr{content-visibility:auto;contain-intrinsic-size:auto 168px}
+  /* The screen that slides in beside you while you swipe (vegen.js) and the one moving with your finger are drawn in full:
+     rows that were skipped would pop in half way through the swipe (Kwin 2026-11-05, "niet altijd soepel"). */
+  html.boekuna-motion :is(#content.bk-peek,#content.bk-paging) :is(.mobile-card-list>.mobile-card-row,:is(.mobile-invoices,.mobile-expenses,.mobile-bank,.mobile-documents)>tbody>tr){content-visibility:visible}
+}
+/* iPhone (Safari and the app): content-visibility can leave parts of a row unpainted after scrolling, such as the amount on
+   the right (Kwin 2026-11-05: "ik zie de bedragen niet bij Inkomsten"). The lists are short enough to draw in full there. */
+@supports (-webkit-touch-callout:none){
+  html.boekuna-motion #content :is(.mobile-card-list>.mobile-card-row,:is(.mobile-invoices,.mobile-expenses,.mobile-bank,.mobile-documents)>tbody>tr){content-visibility:visible}
 }

@@ -74,12 +74,49 @@
         finish();
         if(result&&typeof result.then==='function')result.then(finish,function(){});
       }
+      if(phone.matches)prerenderNeighbours();
       return result;
     };
     wrapped.__vegen=true;wrapped.__bk=orig.__bk;
     window.navigate=wrapped;
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wrapNavigate,{once:true});else wrapNavigate();
+
+  /* ---------- The tab beside you, ready before you swipe (Kwin 2026-11-05: "niet altijd soepel genoeg") ----------
+     The first swipe to a tab you had not opened yet showed empty colour beside the screen and slid the new one in late.
+     When the phone has a quiet moment, the tabs left and right of this one are drawn once into the same stand-in as a
+     kept screen, at the top (where a tab you open fresh starts). Nothing is shown and nothing listens until you swipe. */
+  var RENDER={dashboard:'renderDashboard',invoices:'renderInvoices',expenses:'renderExpenses',documents:'renderDocuments'};
+  function prerender(name){
+    var k=kept[name];if(k&&Date.now()-k.at<KEEP)return;
+    var fn=window[RENDER[name]],content=document.getElementById('content'),now=currentPage();
+    if(typeof fn!=='function'||!content||!now||now===name||!phone.matches)return;
+    var box=document.createElement('div'),html;
+    try{
+      page=name;
+      html=typeof window.renderMemoized==='function'&&typeof renderMemo!=='undefined'?(function(){var outer=renderMemo;renderMemo=outer||new Map();try{return fn()}finally{if(!outer)renderMemo=null}})():fn();
+      box.id='content';
+      box.className=String(content.className||'').replace(/\b(motion-enter|motion-dir-left|motion-dir-right|bk-paging|bk-peek)\b/g,'').trim()+' bk-peek';
+      box.dataset.page=name;box.setAttribute('aria-hidden','true');box.setAttribute('inert','');
+      box.innerHTML=html;
+      if(typeof window.applyPhoneBand==='function')window.applyPhoneBand(box);
+    }catch(e){return}
+    finally{page=now}
+    kept[name]={box:box,top:content.getBoundingClientRect().top+(window.scrollY||0),at:Date.now(),from:name};
+  }
+  var preTimer=0;
+  function prerenderNeighbours(){
+    clearTimeout(preTimer);
+    preTimer=setTimeout(function(){
+      var idle=window.requestIdleCallback||function(cb){return setTimeout(cb,1)};
+      idle(function(){
+        if(g)return; // never in the middle of a swipe
+        var order=tabs(),at=order.indexOf(currentPage());if(at<0)return;
+        [order[at+1],order[at-1]].forEach(function(name){if(name)prerender(name)});
+      },{timeout:1500});
+    },450);
+  }
+  if(document.readyState==='complete')prerenderNeighbours();else window.addEventListener('load',prerenderNeighbours,{once:true});
   // Data that changed elsewhere (a sync, an edit) makes a kept screen old news.
   window.addEventListener('pagehide',function(){kept={}});
 
@@ -152,6 +189,8 @@
   function velocity(s){
     var list=s.samples,last=list[list.length-1],first=last;
     for(var i=list.length-2;i>=0;i--){if(last[0]-list[i][0]>80)break;first=list[i]}
+    // A finger that stopped before it let go is not a flick: the screen goes where it is, not where it was heading.
+    if(s.endTs&&s.endTs-last[0]>100)return 0;
     var dt=last[0]-first[0];return dt>0?(last[1]-first[1])/dt:0;
   }
   function markTab(name){
@@ -195,7 +234,7 @@
     place(s,-dir*w,ms);
     settle(s,go,ms);
   }
-  document.addEventListener('touchend',end,{capture:true,passive:true});
+  document.addEventListener('touchend',function(e){if(g)g.endTs=e.timeStamp||Date.now();end()},{capture:true,passive:true});
   document.addEventListener('touchcancel',function(){if(g&&!g.settling)cancel()},{capture:true,passive:true});
   // A sideways swipe is not a tap on whatever was under the finger.
   document.addEventListener('click',function(e){if(Date.now()-swipedAt<400&&e.target.closest&&e.target.closest('#content')){e.preventDefault();e.stopPropagation()}},true);

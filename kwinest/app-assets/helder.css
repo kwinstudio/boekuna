@@ -57,7 +57,8 @@ html[data-theme="dark"] #mainApp #content .profile-missing{background:#3A2E14;co
 /* 9: one search bar. Since 2026-11-02 that is the magnifier top right on every page (zoeken.css); pages have no own search box. */
 
 /* 18: filters only when there is something to filter: none under 10 rows, then at most two chips plus Meer. */
-html.boekuna-helder #mainApp .list-toolbar[data-few] :is(.list-toolbar-quick,[data-list-open-filters],[data-list-open-sort],.list-filter-chips){display:none!important}
+/* Kwin 2026-11-05: on the phone the chip row stays, even on a short list: there is room, and one tap beats opening a sheet. */
+html.boekuna-helder #mainApp .list-toolbar[data-few]:not(.list-toolbar-chips) :is(.list-toolbar-quick,[data-list-open-filters],[data-list-open-sort],.list-filter-chips){display:none!important}
 html.boekuna-helder #mainApp .list-chip-row label.list-chip-select:not(.is-on):nth-of-type(n+3){display:none!important}
 /* 2: hours live on Ritten & uren now; the old separate Uren & ritten nav item would be a duplicate. */
 #mainApp .nav-item[data-page="hours"]{display:none!important}
