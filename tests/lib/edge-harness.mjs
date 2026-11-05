@@ -59,16 +59,20 @@ export function fakeStripe(routes){
 }
 
 // Load an Edge Function with its Deno-only imports replaced by the fakes.
-export async function loadEdgeFunction(fnDir,{env={},supabase,fetchImpl}){
+// pdfLib: the test's own pdf-lib module, for a function that imports npm:pdf-lib. The returned
+// handler carries the module's exports as handler.exports.
+export async function loadEdgeFunction(fnDir,{env={},supabase,fetchImpl,pdfLib=null}){
   const src=fs.readFileSync(path.join(fnDir,'index.ts'),'utf8')
     .replace(/^import "jsr:[^"]+";\s*$/m,'')
-    .replace(/import \{ ?createClient ?\} from "npm:@supabase\/supabase-js@2";/,'const {createClient}=globalThis.__edgeFakes.supabase;');
+    .replace(/import \{ ?createClient ?\} from "npm:@supabase\/supabase-js@2";/,'const {createClient}=globalThis.__edgeFakes.supabase;')
+    .replace(/import \{([^}]+)\} from "npm:pdf-lib@[\d.]+";/,'const {$1}=globalThis.__edgeFakes.pdfLib||{};');
   const tmp=path.join(fnDir,`.harness-${process.pid}-${++loadCounter}.ts`);
   fs.writeFileSync(tmp,src);
-  let handler=null;
-  globalThis.__edgeFakes={supabase};
+  let handler=null,mod=null;
+  globalThis.__edgeFakes={supabase,pdfLib};
   globalThis.Deno={env:{get:k=>env[k]},serve:h=>{handler=h}};
   globalThis.fetch=fetchImpl;
-  try{await import(pathToFileURL(tmp).href)}finally{fs.unlinkSync(tmp)}
+  try{mod=await import(pathToFileURL(tmp).href)}finally{fs.unlinkSync(tmp)}
+  if(handler)handler.exports=mod;
   return handler;
 }

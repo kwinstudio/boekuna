@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import * as pdfLib from 'pdf-lib';
 import {loadEdgeFunction} from './lib/edge-harness.mjs';
 
 // Bonnen mailen (Kwin 2026-11-04): the inbound-mail edge function in Node with a fake database,
@@ -10,8 +11,9 @@ const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','supabase'
 const secret='whsec_'+Buffer.from('boekuna-test-signing-secret-32by').toString('base64');
 const USER='11111111-1111-4111-8111-111111111111',LOCAL='kwinstudio-3f9a1c7e5b2d';
 
-function fakeDb(vault=null){
- const tables={documents:[],inbound_mail_events:[]},storage=new Map(),calls=[];
+// legacy: the database before migration 20261105140000 (no detail column, no forward_confirm outcome).
+function fakeDb(vault=null,{legacy=false}={}){
+ const tables={documents:[],inbound_mail_events:[],document_processing_jobs:[]},storage=new Map(),calls=[];
  const targets={[LOCAL]:{user_id:USER,entitled:true,company_context:{name:'Kwin Studio',kvk:'12345678'}},'startplan-aaaaaaaaaaaa':{user_id:'22222222-2222-4222-8222-222222222222',entitled:false,company_context:{}}};
  function builder(name){
   const f=[];let head=false,count=false;
@@ -32,9 +34,10 @@ function fakeDb(vault=null){
     calls.push(['insert',name,row]);
     if(name==='inbound_mail_events'&&tables[name].some(r=>r.email_id===row.email_id&&r.local_part===row.local_part))return {error:{code:'23505'}};
     if(name==='documents'&&tables[name].some(r=>r.user_id===row.user_id&&r.client_ref===row.client_ref))return {error:{code:'23505'}};
+    if(name==='document_processing_jobs'&&tables[name].some(r=>r.user_id===row.user_id&&r.document_id===row.document_id))return {error:{code:'23505'}};
     tables[name].push({id:crypto.randomUUID(),created_at:new Date().toISOString(),...row});return {error:null}
    },
-   update:patch=>{const f=[];const u={eq(c,v){f.push(r=>r[c]===v);return u},then(res){tables[name].filter(r=>f.every(x=>x(r))).forEach(r=>Object.assign(r,patch));res({error:null})}};return u}
+   update:patch=>{const f=[];const u={eq(c,v){f.push(r=>r[c]===v);return u},then(res){if(legacy&&name==='inbound_mail_events'&&('detail' in patch||patch.outcome==='forward_confirm'))return res({error:{code:'PGRST204',message:'detail'}});tables[name].filter(r=>f.every(x=>x(r))).forEach(r=>Object.assign(r,patch));res({error:null})}};return u}
   }),
   rpc:async(fn,args)=>{calls.push(['rpc',fn,args]);if(fn==='inbound_mail_secrets')return {data:vault?[vault]:[],error:null};assert.equal(fn,'inbound_mail_target');const t=targets[args.p_local_part];return {data:t?[t]:[],error:null}},
   storage:{from:bucket=>({
@@ -53,6 +56,13 @@ const ATTACHMENTS=[
  {id:'att-photo',filename:'IMG_2041.HEIC',content_type:'application/octet-stream',content_disposition:'inline',size:photo.length,download_url:'https://inbound-cdn.resend.test/att-photo'},
  {id:'att-zip',filename:'stukken.zip',content_type:'application/zip',content_disposition:'attachment',size:900,download_url:'https://inbound-cdn.resend.test/att-zip'}
 ];
+// The mails themselves, for the ones without a usable attachment.
+const MAILS={
+ 'mail-empty':{from:'kwin@gmail.example',subject:'test',text:'test\n\nVerstuurd vanaf mijn iPhone',html:'<p>test</p>'},
+ 'mail-html':{from:'Bol <orders@bol.example>',subject:'Je bestelling 1234',text:'',html:'<html><head><style>td{color:red}</style><title>x</title></head><body><h1>Bedankt voor je bestelling</h1><table><tr><td>USB-C kabel</td><td>&euro;&nbsp;19,99</td></tr><tr><td>Verzending</td><td>&#8364; 4,00</td></tr><tr><th>Totaal</th><th>€ 23,99</th></tr></table><p>Btw 21%: € 4,16<br>Ordernummer: 1234 · Café “De Hoek” 🎉</p><p>'+'x'.repeat(3000)+'</p></body></html>'},
+ 'mail-gmail':{from:'Gmail Team <forwarding-noreply@google.com>',subject:'(#481516234) Gmail Forwarding Confirmation - Receive Mail from Kwin.Test@gmail.example',text:'kwin.test@gmail.example has requested to automatically forward mail to your email address.\nConfirmation code: 481516234\n\nTo allow, please click the link below to confirm the request:\n\nhttps://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz\n\nIf you click the link and it appears to be broken...',html:''},
+ 'mail-fake-gmail':{from:'forwarding-noreply@google.com',subject:'(#999999999) Gmail Forwarding Confirmation',text:'Click https://evil.example/mail/vf-steal to confirm',html:'<a href="https://evil.example/x">confirm</a>'}
+};
 function fakeFetch(){
  const calls=[];
  return {calls,fetchImpl:async(url,init={})=>{
@@ -60,7 +70,8 @@ function fakeFetch(){
   if(u.startsWith('https://api.resend.test/emails/receiving/')){
    assert.equal(init.headers?.Authorization,'Bearer re_test');
    const id=decodeURIComponent(u.split('/')[5]);
-   return new Response(JSON.stringify({object:'list',data:id==='mail-empty'?[ATTACHMENTS[1]]:ATTACHMENTS}),{status:200});
+   if(!u.endsWith('/attachments')){assert.ok(MAILS[id],'Only a mail without a usable file is read: '+id);return new Response(JSON.stringify({object:'email',id,...MAILS[id]}),{status:200})}
+   return new Response(JSON.stringify({object:'list',data:MAILS[id]?[ATTACHMENTS[1]]:ATTACHMENTS}),{status:200});
   }
   if(u==='https://inbound-cdn.resend.test/att-pdf')return new Response(pdf);
   if(u==='https://inbound-cdn.resend.test/att-photo')return new Response(photo);
@@ -72,11 +83,11 @@ function sign(body,{id='msg_1',ts=Math.floor(Date.now()/1000),key=secret}={}){
  return {'svix-id':id,'svix-timestamp':String(ts),'svix-signature':'v1,'+sig};
 }
 function received(id,to,extra={}){return JSON.stringify({type:'email.received',created_at:'2026-11-04T14:00:00.000Z',data:{email_id:id,created_at:'2026-11-04T14:00:00.000Z',from:'orders@bol.example',to,cc:[],subject:'Je factuur',attachments:[],...extra}})}
-async function load(){
- const db=fakeDb(),net=fakeFetch();
- const handler=await loadEdgeFunction(dir,{env:{SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service-key',RESEND_API_KEY:'re_test',RESEND_INBOUND_WEBHOOK_SECRET:secret,RESEND_API_URL:'https://api.resend.test'},supabase:db.supabase,fetchImpl:net.fetchImpl});
+async function load(opts={}){
+ const db=fakeDb(null,opts),net=fakeFetch();
+ const handler=await loadEdgeFunction(dir,{env:{SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service-key',RESEND_API_KEY:'re_test',RESEND_INBOUND_WEBHOOK_SECRET:secret,RESEND_API_URL:'https://api.resend.test'},supabase:db.supabase,fetchImpl:net.fetchImpl,pdfLib});
  const post=(body,headers=sign(body))=>handler(new Request('https://fn.test/inbound-mail',{method:'POST',headers,body}));
- return {db,net,post};
+ return {db,net,post,fn:handler.exports};
 }
 const json=r=>r.json();
 
@@ -99,27 +110,86 @@ const json=r=>r.json();
  assert.deepEqual(docs.map(d=>d.mime_type),['application/pdf','image/heic']);
  assert.equal(docs[0].storage_path,USER+'/mail-mail-1-att-pdf-Factuur-Bol.com-2026-11.pdf','Same bucket layout as an upload from the app');
  const meta=docs[0].metadata;
- assert.equal(meta.processing,true,'The app’s resume turns it into a processing job');
+ assert.equal(meta.processing,true,'If the job below is lost, the app’s resume makes it from this');
  assert.equal(meta.source,'mail');assert.equal(meta.requested_kind,'auto');assert.equal(meta.batch_id,'mail-mail-1');assert.equal(meta.size,pdf.length);
  assert.deepEqual(meta.mail,{from:'orders@bol.example',subject:'Je factuur',received_at:'2026-11-04T14:00:00.000Z'});
  assert.deepEqual(meta.company_context,{name:'Kwin Studio',tradeName:'',kvk:'12345678',vat:''});
  assert.equal(db.storage.size,2);assert.equal(db.storage.get(docs[0].storage_path).opts.contentType,'application/pdf');
- assert.deepEqual(db.tables.inbound_mail_events.map(e=>[e.outcome,e.files,e.user_id]),[['stored',2,USER]]);
+ assert.deepEqual(db.tables.inbound_mail_events.map(e=>[e.outcome,e.files,e.user_id,e.detail?.subject]),[['stored',2,USER,'Je factuur']]);
+ // The processing job is queued right away, so an open app starts reading the bon at once.
+ const jobs=db.tables.document_processing_jobs;
+ assert.deepEqual(jobs.map(j=>[j.client_ref,j.state,j.phase,j.execution_mode,j.requested_kind,j.batch_id]),docs.map(d=>[d.client_ref,'queued','queued','legacy','auto','mail-mail-1']));
+ assert.deepEqual(jobs.map(j=>j.document_id),docs.map(d=>d.id));
+ assert.deepEqual(jobs[0].company_context,{name:'Kwin Studio',tradeName:'',kvk:'12345678',vat:''});assert.equal(jobs[0].size_bytes,pdf.length);assert.equal(jobs[0].file_name,'Factuur Bol.com 2026-11.pdf');
 
  // Resend retries the same delivery: nothing doubles.
  const again=await post(body,sign(body,{id:'msg_2'}));
- assert.deepEqual((await json(again)).outcomes,['duplicate']);assert.equal(db.tables.documents.length,2);
+ assert.deepEqual((await json(again)).outcomes,['duplicate']);assert.equal(db.tables.documents.length,2);assert.equal(db.tables.document_processing_jobs.length,2);
 
  // Unknown address, Start plan, a mail without a receipt and an address on another domain.
  assert.deepEqual((await json(await post(received('mail-2',['iemand-anders123@bon.boekuna.nl'])))).outcomes,['unknown_address']);
  assert.deepEqual((await json(await post(received('mail-3',['startplan-aaaaaaaaaaaa@bon.boekuna.nl'])))).outcomes,['not_entitled']);
- assert.deepEqual((await json(await post(received('mail-empty',[LOCAL+'@bon.boekuna.nl'])))).outcomes,['no_files']);
+ assert.deepEqual((await json(await post(received('mail-empty',[LOCAL+'@bon.boekuna.nl'],{subject:'test'})))).outcomes,['no_files'],'"test" without a file is no bon');
+ assert.deepEqual(db.tables.inbound_mail_events.find(e=>e.email_id==='mail-empty').detail,{subject:'test'},'The app can say which mail had no bon');
  assert.deepEqual((await json(await post(received('mail-4',[LOCAL+'@boekuna.nl'])))).outcomes,[],'Only the inbound domain counts');
  // Auto-forward from Gmail: the original To stays, the forward address is in received_for; +tags are fine.
  assert.deepEqual((await json(await post(received('mail-5',['kwin@gmail.example'],{received_for:[LOCAL.toUpperCase()+'+bonnen@bon.boekuna.nl']})))).outcomes,['stored']);
- assert.equal(db.tables.documents.length,4);
+ assert.equal(db.tables.documents.length,4);assert.equal(db.tables.document_processing_jobs.length,4);
  assert.equal((await post(JSON.stringify({type:'email.sent',data:{email_id:'x'}}))).status,200,'Other events are ignored');
  assert.ok(!db.calls.some(c=>c[0]==='rpc'&&c[2].p_local_part==='kwin'),'Never looks up a sender');
+}
+{
+ // Proven logic (Dext, Expensify, Moneybird): a mail without a pdf or photo whose text is the receipt
+ // becomes a pdf of that mail, processed like any other bon.
+ const {db,post}=await load();
+ const res=await post(received('mail-html',[LOCAL+'@bon.boekuna.nl'],{from:'Bol <orders@bol.example>',subject:'Je bestelling 1234'}));
+ assert.deepEqual((await json(res)).outcomes,['stored_text']);
+ const [doc]=db.tables.documents;
+ assert.equal(doc.name,'Je bestelling 1234.pdf');assert.equal(doc.mime_type,'application/pdf');assert.equal(doc.client_ref,'mail-mail-html-tekst');
+ assert.equal(doc.metadata.mail.body,true);assert.equal(doc.metadata.source,'mail');assert.equal(doc.metadata.processing,true);
+ const bytes=db.storage.get(doc.storage_path).bytes;
+ assert.equal(Buffer.from(bytes.slice(0,5)).toString(),'%PDF-');assert.equal(doc.metadata.size,bytes.byteLength);
+ const parsed=await pdfLib.PDFDocument.load(bytes);
+ assert.ok(parsed.getPageCount()>=1&&parsed.getPageCount()<=6);assert.equal(parsed.getTitle(),'Je bestelling 1234');
+ assert.deepEqual(db.tables.document_processing_jobs.map(j=>[j.client_ref,j.state,j.mime_type]),[['mail-mail-html-tekst','queued','application/pdf']]);
+ const ev=db.tables.inbound_mail_events[0];assert.deepEqual([ev.outcome,ev.files,ev.detail],['stored',1,{subject:'Je bestelling 1234',from_text:'1'}]);
+ // Replayed: still one document and one job.
+ const again=received('mail-html',[LOCAL+'@bon.boekuna.nl']);
+ assert.deepEqual((await json(await post(again,sign(again,{id:'msg_html_2'})))).outcomes,['duplicate']);
+ assert.equal(db.tables.documents.length,1);assert.equal(db.tables.document_processing_jobs.length,1);
+
+ // Gmail's forwarding check: code, Google's link and the Gmail account go to the app; no bon.
+ const g=await post(received('mail-gmail',[LOCAL+'@bon.boekuna.nl'],{from:'Gmail Team <forwarding-noreply@google.com>',subject:MAILS['mail-gmail'].subject}));
+ assert.deepEqual((await json(g)).outcomes,['forward_confirm']);
+ const ge=db.tables.inbound_mail_events.find(e=>e.email_id==='mail-gmail');
+ assert.equal(ge.outcome,'forward_confirm');assert.equal(ge.user_id,USER);
+ assert.equal(ge.detail.code,'481516234');assert.equal(ge.detail.link,'https://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz');assert.equal(ge.detail.account,'kwin.test@gmail.example');
+ assert.equal(db.tables.documents.length,1,'A Gmail check is never a bon');
+ // A look-alike with someone else's link keeps the code but never the link.
+ await post(received('mail-fake-gmail',[LOCAL+'@bon.boekuna.nl'],{from:'forwarding-noreply@google.com',subject:MAILS['mail-fake-gmail'].subject}));
+ const fe=db.tables.inbound_mail_events.find(e=>e.email_id==='mail-fake-gmail');
+ assert.equal(fe.outcome,'forward_confirm');assert.equal(fe.detail.code,'999999999');assert.equal(fe.detail.link,'');
+}
+{
+ // Before migration 20261105140000: the outcome is still kept, without the detail.
+ const {db,post}=await load({legacy:true});
+ assert.deepEqual((await json(await post(received('mail-gmail',[LOCAL+'@bon.boekuna.nl'],{subject:MAILS['mail-gmail'].subject})))).outcomes,['forward_confirm']);
+ assert.deepEqual((await json(await post(received('mail-l1',[LOCAL+'@bon.boekuna.nl'])))).outcomes,['stored']);
+ assert.deepEqual(db.tables.inbound_mail_events.map(e=>[e.email_id,e.outcome,e.user_id,'detail' in e]),[['mail-gmail','no_files',USER,false],['mail-l1','stored',USER,false]]);
+}
+{
+ // The pieces on their own.
+ const {fn}=await load();
+ assert.equal(fn.htmlText('<style>p{}</style><p>A&nbsp;&amp;&#x20AC;&#8364;&euro;&eacute;</p><table><tr><td>Kabel</td><td>€ 1,00</td></tr></table><!-- x --><br>&bogus;'),'A &€€€é\nKabel € 1,00\n\n&bogus;');
+ assert.ok(fn.looksLikeReceipt('Totaal: 12,50'));assert.ok(fn.looksLikeReceipt('Bedrag EUR 9'));assert.ok(fn.looksLikeReceipt('€ 4,16'));
+ assert.ok(!fn.looksLikeReceipt('test'));assert.ok(!fn.looksLikeReceipt('Zie bijlage. Groet, Kwin'));assert.ok(!fn.looksLikeReceipt('Bel me op 06 12345678'));
+ assert.equal(fn.mailText({text:'Totaal € 5,00',html:'<p>other</p>'}),'Totaal € 5,00','Plain text wins when it holds the amounts');
+ assert.equal(fn.mailText({text:'Bekijk deze mail in je browser',html:'<p>Totaal</p><p>€ 5,00</p>'}),'Totaal\n€ 5,00','Otherwise the html');
+ assert.equal(fn.pdfText('Łódź → ok 🎉 ‑'),'Lódz -> ok ? -');
+ assert.equal(fn.gmailForwardConfirm({from:'shop@example.com',subject:'Je bon'},{text:'https://mail.google.com/mail/vf-x'}),null,'Only Gmail’s own check');
+ // A huge mail without spaces still makes a small pdf quickly.
+ const t0=Date.now(),big=await fn.mailPdf({subject:'Groot',from:'a@b.example',created_at:'2026-11-05'},'€ 1,00 '+'y'.repeat(30000)+'\n'+'regel\n'.repeat(4000));
+ const doc=await pdfLib.PDFDocument.load(big);assert.ok(doc.getPageCount()<=6);assert.ok(Date.now()-t0<5000,'fast enough');
 }
 {
  // Thirty stored mails a day per account; the next one waits.
@@ -186,4 +256,4 @@ const json=r=>r.json();
  const handler=await loadEdgeFunction(dir,{env:{SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service-key'},supabase:db.supabase,fetchImpl:async()=>{throw new Error('no network')}});
  assert.equal((await handler(new Request('https://fn.test',{method:'POST',body:'{}'}))).status,503);
 }
-console.log('Inbound mail function: signature, address lookup, attachments, replay, limits and retry: PASS');
+console.log('Inbound mail function: signature, address lookup, attachments, mail text as bon, Gmail check, jobs, replay, limits and retry: PASS');

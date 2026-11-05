@@ -72,7 +72,11 @@ try{
     const created=(await calls(page)).find(c=>c.p_create);
     assert.equal(created.p_hint,'Fictieve QA BV','The company name gives the readable start');
     assert.deepEqual(created.p_company,{name:'Fictieve QA BV',tradeName:'',kvk:'12345678',vat:'NL123456789B01'},'The processor gets the company to tell a purchase from a sale');
-    assert.match(await panel.innerText(),/Stuur een bon of factuur als bijlage naar dit adres/);
+    assert.match(await panel.innerText(),/Stuur een bon of factuur naar dit adres/);
+    assert.match(await panel.innerText(),/of de bon in de mail zelf/,'A webshop mail without attachment works too');
+    await panel.locator('.inbound-mail-events').waitFor();
+    assert.match(await panel.locator('.inbound-mail-events').innerText(),/Laatste mails[\s\S]*Nog geen mail ontvangen/);
+    assert.equal(await panel.locator('.inbound-mail-card').count(),1,'One panel, not one inside another');
     // Copy.
     await panel.getByRole('button',{name:'Kopiëren'}).click();
     await panel.getByRole('button',{name:'Gekopieerd'}).waitFor();
@@ -125,6 +129,53 @@ try{
     await page.waitForFunction(()=>inboundAddress.loaded&&!inboundAddress.loading);
     assert.equal(await page.evaluate(()=>inboundAddress.error),'failed');
     assert.equal(await page.locator('#content .inbound-mail-hint').count(),0,'No offer when the address cannot be read');
+    await context.close();
+  }
+  {
+    // What happened to the last mails, and Gmail's forwarding check with its code and Google's own link.
+    const {context,page}=await openApp();
+    await page.evaluate(()=>{
+      const now=Date.now(),iso=m=>new Date(now-m*60000).toISOString();
+      window.__events=[
+        {created_at:iso(1),outcome:'forward_confirm',files:0,detail:{subject:'(#481516234) Gmail Forwarding Confirmation',code:'481516234',link:'https://mail-settings.google.com/mail/vf-%5BABC%5D-x',account:'kwin@gmail.example'}},
+        {created_at:iso(5),outcome:'stored',files:2,detail:{subject:'Factuur KPN november'}},
+        {created_at:iso(9),outcome:'stored',files:1,detail:{subject:'Je bestelling bij bol',from_text:'1'}},
+        {created_at:iso(20),outcome:'no_files',files:0,detail:{subject:'test'}},
+        {created_at:iso(30),outcome:'limited',files:0}
+      ];
+      window.boekunaInboundMailEvents=async()=>window.__events.map(e=>({...e,detail:e.detail&&{...e.detail}}));
+    });
+    await page.evaluate(()=>window.openSettingsSection('mailin'));
+    const panel=page.locator('#settings-panel-mailin');
+    await panel.locator('.inbound-mail-text').waitFor();
+    await panel.locator('.inbound-mail-events li').nth(4).waitFor();
+    const items=await panel.locator('.inbound-mail-events li').allInnerTexts();
+    assert.equal(items.length,5);
+    assert.match(items[0],/Gmail Forwarding Confirmation[\s\S]*Gmail vraagt om bevestiging/);
+    assert.match(items[1],/Factuur KPN november[\s\S]*Vandaag \d\d:\d\d · 2 bonnen opgeslagen/);
+    assert.match(items[2],/Je bestelling bij bol[\s\S]*Bon uit de mail opgeslagen/);
+    assert.match(items[3],/test[\s\S]*Geen bon gevonden/);
+    assert.match(items[4],/Mail[\s\S]*Daglimiet bereikt/,'No subject (before the migration): just "Mail"');
+    const confirm=panel.locator('.inbound-mail-confirm');
+    assert.match(await confirm.innerText(),/Gmail wil bonnen doorsturen[\s\S]*kwin@gmail\.example[\s\S]*481516234/);
+    const link=confirm.getByRole('link',{name:'Bevestigen in Gmail'});
+    assert.equal(await link.getAttribute('href'),'https://mail-settings.google.com/mail/vf-%5BABC%5D-x');
+    assert.equal(await link.getAttribute('target'),'_blank');assert.match(await link.getAttribute('rel'),/noopener/);
+    await confirm.getByRole('button',{name:'Kopiëren'}).click();
+    await confirm.getByRole('button',{name:'Gekopieerd'}).waitFor();
+    if(browserName==='chromium')assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'481516234');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'No sideways scroll');
+    // Someone else's link never becomes a button.
+    await page.evaluate(()=>{window.__events[0].detail.link='https://evil.example/mail/vf-x';return refreshInboundEvents()});
+    assert.equal(await panel.locator('.inbound-mail-confirm a').count(),0);
+    assert.match(await panel.locator('.inbound-mail-confirm').innerText(),/481516234/);
+    // Once forwarded mail arrives, the check is gone.
+    await page.evaluate(()=>{window.__events.unshift({created_at:new Date().toISOString(),outcome:'stored',files:1,detail:{subject:'Doorgestuurd: bon'}});return refreshInboundEvents()});
+    assert.equal(await panel.locator('.inbound-mail-confirm').count(),0,'Forwarding works, so the check is gone');
+    assert.equal(await panel.locator('.inbound-mail-events li').count(),5,'The last five');
+    // The newest mail had no bon: one short line says what to do.
+    await page.evaluate(()=>{window.__events.unshift({created_at:new Date().toISOString(),outcome:'no_files',files:0,detail:{subject:'zie bijlage'}});return refreshInboundEvents()});
+    assert.match(await panel.locator('.inbound-mail-events').innerText(),/Stuur de bon mee als pdf of foto/);
     await context.close();
   }
   {
