@@ -102,7 +102,7 @@ try{
   // An old choice on the account or this device paints nothing any more.
   await page.evaluate(()=>{localStorage.setItem('boekuna-band','oceaan');state.meta.band='oceaan';state.meta.sfeer='marmer';render()});
   assert.equal(await page.evaluate(()=>'band' in document.documentElement.dataset||'sfeer' in document.documentElement.dataset),false);
-  assert.equal(await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).getPropertyValue('--r1d-top').trim()),'#0F2A1A','Diep groen everywhere');
+  assert.equal(await page.locator('#content .r1d-hero').evaluate(el=>getComputedStyle(el).getPropertyValue('--r1d-top').trim()),'#121614','One colour everywhere (kleur C, Kwin 2026-11-05)');
   // Instellingen > App keeps only Weergave (Automatisch, Licht, Donker): no colour or photo choice.
   await page.evaluate(()=>navigate('settings'));
   await page.locator('.settings-nav-item[data-settings-open="app"]').click();
@@ -126,7 +126,7 @@ try{
   assert.match(await text(page.locator('#content .r1d-hero .r1d-story-hero .report-story-amount')),/^€/,'Rapportages total sits in the band');
   assert.equal(await page.locator('#content .report-story .report-story-amount').count(),0);
 
-  // 8. The one theme: the green accent on every button, the open tab white on the glass bar, the green gradient behind every page.
+  // 8. The one theme (kleur C, Kwin 2026-11-05): the green accent on every button, the open tab ink on the white bar, a light page.
   const rgb=h=>'rgb('+[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)).join(', ')+')';
   await page.evaluate(()=>navigate('documents'));
   const primary=page.locator('#content .btn.primary').first();
@@ -135,9 +135,9 @@ try{
   // Buttons animate their colour, so each check waits for the transition to land.
   const settles=async(loc,prop,value,msg)=>{const el=await loc.elementHandle();try{await page.waitForFunction(([e,p,v])=>getComputedStyle(e)[p]===v,[el,prop,value],{timeout:4000})}catch(e){}assert.equal(await loc.evaluate((e,p)=>getComputedStyle(e)[p],prop),value,msg)};
   await settles(primary,'backgroundColor',rgb('#63D471'),'the green primary button');
-  await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#FFFFFF'),'the active tab is white on the glass bar');
+  await settles(page.locator('#mobileBottomNav .mobile-bottom-nav-item.active span').first(),'color',rgb('#121614'),'the active tab is ink on the white bar');
   const canvas=()=>page.evaluate(()=>getComputedStyle(document.body,'::before').backgroundImage);
-  assert.match(await canvas(),/linear-gradient/,'the green gradient is the whole screen');
+  assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),rgb('#F4F4F2'),'the page is light');
   assert.doesNotMatch(await canvas(),/sfeer-/,'no photo');
   assert.equal(await page.evaluate(()=>getComputedStyle(document.body,'::before').position),'fixed','the colour stays put while the page scrolls');
   assert.ok(!generated.includes("localStorage.getItem('boekuna-sfeer')")&&!generated.includes("localStorage.getItem('boekuna-band')"),'the boot script no longer paints a band or photo');

@@ -2452,6 +2452,7 @@ if(location.hostname==='kwinest-boekhouding.onrender.com'){
   <button class="mobile-bottom-nav-item" type="button" data-mobile-page="documents" aria-label="Bonnen"><svg class="icon"><use href="#i-folder"/></svg><span>Bonnen</span></button>
 </nav>
 <div id="modalRoot"></div><div class="toast-wrap" id="toastRoot"></div>
+<input class="hidden" type="file" id="receiptCameraFile" accept="image/*" capture="environment">
 <input class="hidden" type="file" id="invoicePdfFile" multiple accept="image/*,application/pdf,.pdf,image/jpeg,image/png,image/webp,image/heic,image/heif,image/tiff,image/bmp,image/gif,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.bmp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx,text/csv,application/csv,.csv" />
 <script>
 const USERS_KEY='boekhouden-local-users-v1';
@@ -4041,6 +4042,19 @@ const LIST_PHONE_PLACEHOLDER={invoices:'Zoek factuur of klant',expenses:'Zoek ko
 // Volledige test 18: a short list (under 10 rows, no filter on) gets only its search box; the filter chips appear once there is something to filter.
 const LIST_SOURCE_KEYS={invoices:'invoices',expenses:'expenses',documents:'documents',contacts:'contacts',bank:'transactions',trips:'mileage',services:'services'};
 function listIsFew(name,activeCount){const key=LIST_SOURCE_KEYS[name];if(!key||activeCount)return false;const rows=state[key];return Array.isArray(rows)&&rows.length<10}
+// Kwin 2026-11-05: on the phone Kosten shows its filters right away instead of only behind the Filter button: Alle, Zonder bon
+// and the categories you use most. A second tap on a chip that is on turns it off again.
+function listPhoneInlineChips(name,s){
+  if(name!=='expenses')return null;
+  const f=s.filters||{},counts=new Map();
+  for(const e of state.expenses){const c=String(e.category||'');if(c)counts.set(c,(counts.get(c)||0)+1)}
+  let cats=[...counts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'nl')).slice(0,4).map(x=>x[0]);
+  const cur=String(f.category||'all');if(cur!=='all'&&!cats.includes(cur))cats=[cur,...cats.slice(0,3)];
+  const chip=(key,value,label,on)=>'<button type="button" class="filter-btn'+(on?' active':'')+'" data-list-quick-key="'+esc(key)+'" data-list-quick-value="'+esc(on&&value!=='all'?'all':value)+'"'+(on?' aria-pressed="true"':'')+'>'+esc(label)+'</button>';
+  const all=cur==='all'&&String(f.receipt||'all')==='all';
+  const html='<button type="button" class="filter-btn'+(all?' active':'')+'" data-list-quick-reset="category,receipt">Alle</button>'+chip('receipt','missing','Zonder bon',String(f.receipt||'all')==='missing')+cats.map(c=>chip('category',c,expenseCategoryLabel(c),cur===c)).join('');
+  return {keys:['category','receipt'],html}
+}
 // Kwin 2026-11-02: no search field in the page any more; the magnifier top right opens one search bar in the header (headerSearch).
 function listToolbar(name,extraHtml=''){
   const s=listPageState(name),ui={...(LIST_UI[name]||{}),...(phoneLayout()&&LIST_PHONE_PLACEHOLDER[name]?{placeholder:LIST_PHONE_PLACEHOLDER[name]}:{})},count=activeListFilterCount(name),quick=listQuickFilters(name),fields=listFilterFields(name),sorts=ui.sorts||[];
@@ -4057,7 +4071,9 @@ function listToolbar(name,extraHtml=''){
     // Leverancier, Categorie, Koppeling, sorting) sits behind one Filter button. A filter that is on stays a green chip with ×.
     const filterOne='<button type="button" class="list-chip-more list-chip-filter'+(count?' is-on':'')+'" data-list-open-filters aria-haspopup="dialog" aria-expanded="false"'+(count?' aria-label="Filters, '+count+' aan"':'')+'>'+icon('i-sliders')+'<span>Filter</span>'+filterCountHtml(count)+'</button>';
     const clearAll=count?'<button type="button" class="list-clear-filters list-chip-clear" data-list-clear-filters>Wissen</button>':'';
-    const chipRow='<div class="list-toolbar-quick list-chip-row" aria-label="Filters">'+filterOne+(quick?quick.options.map(([value,label])=>'<button type="button" class="filter-btn '+(String(s.filters?.[quick.key])===String(value)?'active':'')+'" data-list-quick-key="'+esc(quick.key)+'" data-list-quick-value="'+esc(value)+'">'+esc(label)+'</button>').join(''):'')+onChips+clearAll+'</div>';
+    const inline=listPhoneInlineChips(name,s);
+    const onChipsShown=inline?on.filter(x=>!inline.keys.includes(x.key)).map(x=>'<button type="button" class="list-filter-chip list-chip-on" data-list-clear-filter="'+esc(x.key)+'" aria-label="'+esc(x.label)+' wissen">'+esc(x.label)+' <span aria-hidden="true">×</span></button>').join(''):onChips;
+    const chipRow='<div class="list-toolbar-quick list-chip-row" aria-label="Filters">'+filterOne+(inline?inline.html:quick?quick.options.map(([value,label])=>'<button type="button" class="filter-btn '+(String(s.filters?.[quick.key])===String(value)?'active':'')+'" data-list-quick-key="'+esc(quick.key)+'" data-list-quick-value="'+esc(value)+'">'+esc(label)+'</button>').join(''):'')+onChipsShown+clearAll+'</div>';
     return '<div class="list-toolbar list-toolbar-chips" data-list-page="'+esc(name)+'"'+(listIsFew(name,count)?' data-few':'')+'>'+(extraHtml?'<div class="list-toolbar-main"><div class="list-toolbar-actions"><span class="list-extra-action">'+extraHtml+'</span></div></div>':'')+chipRow+'</div>'
   }
   const chipsHtml=chips.length?'<div class="list-filter-chips" aria-label="Actieve filters">'+chips.map(x=>'<button type="button" class="list-filter-chip" data-list-clear-filter="'+esc(x.key)+'">'+esc(x.label)+' <span aria-hidden="true">×</span></button>').join('')+'<button type="button" class="list-clear-filters" data-list-clear-filters>Filters wissen</button></div>':'';
@@ -4134,6 +4150,7 @@ function wireListToolbar(){
   document.querySelectorAll('[data-list-page]').forEach(toolbar=>{
     const name=toolbar.dataset.listPage;
     toolbar.querySelectorAll('[data-list-quick-key]').forEach(btn=>btn.addEventListener('click',()=>{listPageState(name).filters[btn.dataset.listQuickKey]=btn.dataset.listQuickValue;persistListState();render()}));
+    toolbar.querySelectorAll('[data-list-quick-reset]').forEach(btn=>btn.addEventListener('click',()=>{const f=listPageState(name).filters;for(const k of btn.dataset.listQuickReset.split(','))f[k]='all';persistListState();render()}));
     toolbar.querySelector('[data-list-open-filters]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListFilters(name,e.currentTarget)});
     toolbar.querySelector('[data-list-open-sort]')?.addEventListener('click',e=>{e.currentTarget.setAttribute('aria-expanded','true');openListSort(name,e.currentTarget)});
     toolbar.querySelectorAll('[data-list-chip]').forEach(sel=>sel.addEventListener('change',()=>{listPageState(name).filters[sel.dataset.listChip]=sel.value;persistListState();render()}));
@@ -4167,7 +4184,7 @@ function listEmptyHtml(name,ctaHtml=''){
     bank:{title:'Nog geen banktransacties.',body:'Download je betalingen bij je bank als CSV-bestand en kies dat bestand hier. Boekuna koppelt ze aan je facturen en kosten.',action:'<button type="button" class="btn primary" onclick="document.getElementById(\'csvFile\').click()">Bankbestand importeren</button><button type="button" class="btn" onclick="openBankDownloadHelp()">Waar vind ik dit bestand?</button>'},
     contacts:{title:'Je hebt nog geen relaties.',body:'Voeg een klant of leverancier toe zodra je die nodig hebt.',action:'<button type="button" class="btn primary" onclick="newContact()">Relatie toevoegen</button>'},
     trips:{title:'Je hebt nog geen ritten.',body:'Vul twee postcodes in; Boekuna rekent de kilometers uit.',action:'<button type="button" class="btn primary" onclick="newTrip()">Eerste rit toevoegen</button>'},
-    documents:phoneLayout()?{title:'Nog geen bonnen.',body:'Scan een bon of upload een factuur. Boekuna leest hem uit en zet de bedragen klaar.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Bon scannen</button>'}:{title:'Je hebt nog geen documenten.',body:'Upload een bon of factuur. Boekuna leest hem uit en laat zien wat je moet controleren.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Document uploaden</button>'}
+    documents:phoneLayout()?{title:'Nog geen bonnen.',body:'Scan een bon of upload een factuur. Boekuna leest hem uit en zet de bedragen klaar.',action:'<button type="button" class="btn primary" onclick="openReceiptCamera(\'auto\',true)">Bon scannen</button>'}:{title:'Je hebt nog geen documenten.',body:'Upload een bon of factuur. Boekuna leest hem uit en laat zien wat je moet controleren.',action:'<button type="button" class="btn primary" onclick="openDocumentUpload()">Document uploaden</button>'}
    }[name];
    if(firstUse)return '<div class="empty beginner-empty-state">'+emptyListIcon(name)+'<strong>'+esc(firstUse.title)+'</strong><div class="help">'+esc(firstUse.body)+'</div><div class="beginner-empty-action">'+(ctaHtml||firstUse.action)+'</div></div>';
    return '<div class="empty"><strong>'+esc(ui.empty||('Nog geen '+(ui.entity||'gegevens')+'.'))+'</strong>'+(ctaHtml?'<div style="margin-top:12px">'+ctaHtml+'</div>':'')+'</div>'
@@ -4177,7 +4194,7 @@ function listEmptyHtml(name,ctaHtml=''){
   if(filtered)return '<div class="empty"><strong>Geen '+esc(ui.entity||'resultaten')+' binnen deze filters.</strong><div style="margin-top:12px"><button type="button" class="btn small" data-list-clear-filters>Filters wissen</button></div></div>';
   const periodEmpty={
    invoices:{title:'Nog geen facturen in deze periode',body:'Maak een factuur, Boekuna houdt bij wat nog openstaat.',action:'<button type="button" class="btn primary" onclick="newInvoice()">Factuur maken</button>'},
-   expenses:{title:'Nog geen kosten in deze periode',body:'Scan een bon, de rest doet Boekuna.',action:'<button type="button" class="btn primary" onclick="openUploadSourcePicker(\'purchase\')">Bon scannen</button>'}
+   expenses:{title:'Nog geen kosten in deze periode',body:'Scan een bon, de rest doet Boekuna.',action:'<button type="button" class="btn primary" onclick="openReceiptCamera(\'purchase\')">Bon scannen</button>'}
   }[name];
   if(periodEmpty)return '<div class="empty">'+emptyListIcon(name)+'<strong>'+esc(periodEmpty.title)+'</strong><div class="help">'+esc(periodEmpty.body)+'</div><div class="empty-action">'+(ctaHtml||periodEmpty.action)+'</div></div>';
   return '<div class="empty">'+emptyListIcon(name)+'<strong>Geen '+esc(ui.entity||'resultaten')+' gevonden.</strong></div>'
@@ -4775,8 +4792,8 @@ function dashboardCostBars(buckets){
 // title, hero number and period into the band, so desktop and the page logic stay the same.
 const PHONE_BAND_ACTIONS={
  invoices:()=>[['Factuur','i-file','newInvoice()'],...(typeof newQuote==='function'?[['Offerte','i-quote','newQuote()']]:[]),['Uploaden','i-upload',"triggerInvoiceUpload('sale')"]],
- expenses:()=>[['Bon scannen','i-camera',"openUploadSourcePicker('purchase')"],['Kosten','i-receipt','newExpense()'],['Bank','i-bank','quickBankChoice()']],
- documents:()=>[['Bon scannen','i-camera',"openUploadSourcePicker('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
+ expenses:()=>[['Bon scannen','i-camera',"openReceiptCamera('purchase')"],['Kosten','i-receipt','newExpense()'],['Bank','i-bank','quickBankChoice()']],
+ documents:()=>[['Bon scannen','i-camera',"openReceiptCamera('auto')"],['Uploaden','i-upload',"planAllows(1)?openDocumentUpload():triggerInvoiceUpload('sale')"]],
  bank:()=>state.transactions.length?[['Koppelen','i-link','autoMatch()'],['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']]:[['Importeren','i-upload','quickImportBank()'],['Betaling','i-plus','newTransaction()']],
  vat:()=>state.company?.kor?[]:[['Aangifte','i-tax','vatStepper(0)']],
  contacts:()=>[['Relatie','i-users','newContact()']],
@@ -4917,7 +4934,7 @@ function dashboardCalmPhoneHtml(kpi,greeting,periodControl,notices){
  '<section class="r1d-hero">'+
   '<div class="grid dashboard-kpis dashboard-kpis-calm"><button type="button" class="card metric dashboard-kpi dashboard-kpi-profit kpi-hero" data-kpi-dot="winst" onclick="navigate(\'reports\')"><div class="metric-head"><span class="dashboard-kpi-label">Winst</span></div><div class="metric-value">'+money(kpi.profit)+'</div></button></div>'+
   '<div class="r1d-period"><div class="r1d-pill">'+(trend==null?'':'<span class="r1d-trend'+(trend<0?' is-down':'')+'">'+(trend<0?'↓ ':'↑ ')+Math.abs(trend)+'% ·</span>')+'<div class="dashboard-period-control page-period-slot">'+periodControl+'</div></div></div>'+
-  '<div class="r1d-actions">'+act('Factuur','i-file','newInvoice()')+act('Bon scannen','i-camera',"openUploadSourcePicker('auto')")+act('Bank','i-bank','quickBankChoice()')+'</div>'+
+  '<div class="r1d-actions">'+act('Factuur','i-file','newInvoice()')+act('Bon scannen','i-camera',"openReceiptCamera('auto')")+act('Bank','i-bank','quickBankChoice()')+'</div>'+
  '</section>'+
  phoneUrgentHtml()+
  phoneWidgetsHtml(kpi)+
@@ -4977,7 +4994,7 @@ function renderInvoices(){
  const period=financialPeriodRange(),list=getListRows('invoices'),earlierRows=invoiceEarlierOpenRows(true,period),earlierAll=invoiceEarlierOpenRows(false,period),periodInvoices=state.invoices.filter(i=>financialPeriodContains(i.issueDate,period)),all=periodInvoices.filter(i=>i.kind!=='credit'),finalRows=periodInvoices.filter(i=>invoiceCounts(i)),revenue=finalRows.reduce((sum,i)=>roundMoney(sum+invoiceNet(i)),0),openRows=[...all.filter(i=>invoiceCounts(i)&&toCents(invoiceOutstanding(i))>0),...earlierAll],open=openRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),overdueRows=openRows.filter(invoiceIsOverdueOpen),overdue=overdueRows.reduce((sum,i)=>roundMoney(sum+invoiceOutstanding(i)),0),paidRows=all.filter(i=>invoiceCounts(i)&&invoiceEffectiveStatus(i)==='paid'),paid=paidRows.reduce((sum,i)=>roundMoney(sum+invoiceGross(i)),0);
  return `<div class="product-page-shell"><div class="page-head product-page-head financial-page-head"><div><h1>Inkomsten</h1>${deskCopyHtml('Maak facturen en houd bij wat nog binnenkomt.','page-status','p')}</div><div class="page-period-slot">${financialPeriodSelect('incomePeriod')}</div></div>${state.invoices.length?`<div class="page-actions product-page-actions"><button class="btn primary" onclick="newInvoice()">${icon('i-plus')} Factuur maken</button><button class="btn" onclick="triggerInvoiceUpload('sale')">${icon('i-upload')} Factuur uploaden</button></div>`:''}</div>
  ${financialPeriodRangeHtml()}
- ${phoneLayout()?productKpiGrid([productKpiHero('Te ontvangen',money(open),'','open')],'grid-1 calm-kpis'):productKpiGrid([
+ ${phoneLayout()?productKpiGrid([productKpiHero('Gefactureerd',money(revenue),'excl. btw'+(toCents(open)>0?' · '+money(open)+' nog open':''),'omzet')],'grid-1 calm-kpis'):productKpiGrid([
   productKpi('Gefactureerd',money(revenue),'','i-chart','support',kpiBarsHtml(dashboardMonthlyTotals().map(x=>x.sales)),'omzet'),
   productKpi('Nog te ontvangen',money(open),overdue>0?(phoneLayout()&&toCents(overdue)>=toCents(open)?'Te laat':money(overdue)+' te laat'):'','i-file','neutral',kpiShareBarHtml(overdue,open),'open')
  ],'grid-2')}
@@ -6043,7 +6060,7 @@ function quickImportBank(){
 // (Relaties, Inkomsten, Diensten each have that round button in the band).
 function quickMenuPhoneHtml(full=false){
  const tile=(label,ic,call)=>`<button class="quick-action quick-tile" onclick="closeModal();${call}"><span class="quick-action-icon" aria-hidden="true"><svg class="icon"><use href="#${ic}"/></svg></span><span class="quick-action-text"><strong>${label}</strong></span></button>`;
- return `<div class="quick-tiles">${tile('Bon scannen','i-camera',"openUploadSourcePicker('auto')")}${tile('Factuur','i-file','newInvoice()')}${tile('Kosten','i-receipt','newExpense()')}</div><div class="quick-action-grid quick-rows">${quickMenuPhoneExtras()}${quickActionButton('Rit','','i-car','newTrip()')}${quickActionButton('Uren','','i-clock','newHour()')}${full?quickActionButton('Boeking','','i-chart','newBooking()')+quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()'):''}</div>`
+ return `<div class="quick-tiles">${tile('Bon scannen','i-camera',"openReceiptCamera('auto')")}${tile('Factuur','i-file','newInvoice()')}${tile('Kosten','i-receipt','newExpense()')}</div><div class="quick-action-grid quick-rows">${quickMenuPhoneExtras()}${quickActionButton('Rit','','i-car','newTrip()')}${quickActionButton('Uren','','i-clock','newHour()')}${full?quickActionButton('Boeking','','i-chart','newBooking()')+quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()'):''}</div>`
 }
 function quickMenu(){if(phoneLayout())return modal('Nieuw',quickMenuPhoneHtml(true));modal('Nieuw',`<div class="quick-action-group"><div class="quick-action-heading">Dagelijks</div><div class="quick-action-grid">${quickActionButton('Scannen','Foto van je bon, de rest doet Boekuna','i-upload',"openUploadSourcePicker('auto')",true)}${quickActionButton('Factuur','In een minuut klaar','i-file','newInvoice()',true)}${quickActionButton('Kosten boeken','Zonder bon, met de hand','i-receipt','newExpense()')}${quickActionButton('Banktransactie','Een betaling invoeren','i-bank','newTransaction()')}</div></div><div class="quick-action-group"><div class="quick-action-heading">Meer</div><div class="quick-action-grid">${quickActionButton('Relatie','Klant of leverancier','i-users','newContact()')}${quickActionButton('Rit',phoneLayout()?'':'Van en naar, km automatisch','i-car','newTrip()')}${typeof newQuote==='function'?quickActionButton('Offerte','Wordt met één tik een factuur','i-file','newQuote()'):''}${quickActionButton('Dienst','','i-file','newService()')}${quickActionButton('Uren','Voor het urencriterium','i-clock','newHour()')}${quickActionButton('Boeking','','i-chart','newBooking()')}${quickActionButton('Gemengde afrekening','Omzet + kosten','i-receipt','newSettlement()')}${quickMenuPhoneExtras()}</div></div>`)}
 function nextInvoiceNumber(){const next=String(state.meta.nextInvoice||1).padStart(4,'0');return (state.company.invoicePrefix||((new Date().getFullYear())+'-'))+next}
@@ -6531,7 +6548,7 @@ function bankRowSheet(id){
  const best=p&&p.id?`<p class="bank-sheet-label">Beste match</p><div class="bank-sheet-match"><span class="bank-sheet-icon is-good" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><strong>${esc(p.text)}</strong></div><button class="btn primary bank-sheet-confirm" type="button" onclick="applyBankMatch('${esc(id)}','${esc(p.type)}','${esc(p.id)}')">Klopt, koppelen</button><p class="bank-sheet-label">Of</p>`:'';
  // A linked payment (Kwin 2026-10-22, rows without buttons): the sheet says what it belongs to and offers Ontkoppelen.
  const linkText=linked?(listTransactionLinkText(t)||''):'',linkedBlock=linked&&linkText?`<p class="bank-sheet-label">Gekoppeld aan</p><div class="bank-sheet-match"><span class="bank-sheet-icon is-good" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><strong>${esc(linkText)}</strong></div>`:'';
- const rows=linked?row('Ontkoppelen','i-link',`closeModal();bankConfirmUnlink('${esc(id)}')`):(out?row('Bon scannen','i-camera',"closeModal();openUploadSourcePicker('auto')")+row('Kosten boeken zonder bon','i-receipt',`closeModal();bookBankExpense('${esc(id)}')`):'')+row(p&&p.id?'Iets anders kiezen':(out?'Koppelen aan kosten':'Koppelen aan factuur'),'i-link',`matchTransaction('${esc(id)}')`)+(linked?'':row(out?'Privé (naar eigen rekening)':'Privé (van eigen rekening)','i-home',`markTransactionPrivate('${esc(id)}')`));
+ const rows=linked?row('Ontkoppelen','i-link',`closeModal();bankConfirmUnlink('${esc(id)}')`):(out?row('Bon scannen','i-camera',"closeModal();openReceiptCamera('auto')")+row('Kosten boeken zonder bon','i-receipt',`closeModal();bookBankExpense('${esc(id)}')`):'')+row(p&&p.id?'Iets anders kiezen':(out?'Koppelen aan kosten':'Koppelen aan factuur'),'i-link',`matchTransaction('${esc(id)}')`)+(linked?'':row(out?'Privé (naar eigen rekening)':'Privé (van eigen rekening)','i-home',`markTransactionPrivate('${esc(id)}')`));
  modal(esc(t.description||'Betaling'),`<div class="bank-sheet"><p class="bank-sheet-date"><strong class="bank-sheet-amount${out?'':' in'}">${out?'− ':'+ '}${money(Math.abs(Number(t.amount||0)))}</strong> · ${dateNL(t.date)}</p>${best}${linkedBlock}<div class="bank-sheet-rows">${rows}</div><button class="link-btn bank-sheet-delete" type="button" onclick="closeModal();requestTransactionDelete('${esc(id)}')">Regel verwijderen</button></div>`);
  document.querySelector('#modalRoot .modal')?.classList.add('bank-sheet-modal');document.querySelector('#modalRoot .modal-backdrop')?.classList.add('bank-sheet-backdrop')
 }
@@ -7634,8 +7651,18 @@ function openUploadSourcePicker(kind='auto',smart=false){
 function openDocumentUpload(){
  openUploadSourcePicker('auto',true)
 }
+// Kwin 2026-11-05: "als je op camera drukt, dat je gelijk bij de camera komt". Bon scannen opens the camera straight away on a
+// phone (capture="environment" skips the iPhone's Foto / Bibliotheek / Bestand menu). Uploaden keeps the full picker for PDFs
+// and photos you already took. A computer has no camera to jump to, so it keeps the picker.
+function receiptCameraDirect(){try{return phoneLayout()&&window.matchMedia('(pointer:coarse)').matches}catch(e){return false}}
+function openReceiptCamera(kind='auto',smart=false){
+ if(!receiptCameraDirect())return openUploadSourcePicker(kind,smart);
+ if(kind!=='sale'&&!planAllows(1)){requirePlanAccess(1,'Bonnen en documenten').then(ok=>{if(ok)openReceiptCamera(kind,smart)});return}
+ const input=document.getElementById('receiptCameraFile');if(!input)return openUploadSourcePicker(kind,smart);
+ pendingUploadKind=kind;input.dataset.uploadKind=kind;input.dataset.smartUpload=String(smart);input.value='';input.click()
+}
 function triggerReceiptPhoto(){openUploadSourcePicker('purchase')}
-function triggerReceiptCamera(){openUploadSourcePicker('purchase')}
+function triggerReceiptCamera(){openReceiptCamera('purchase')}
 function safeStorageName(name){return String(name||'bestand').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,140)||'bestand'}
 async function putStoredFile(id,file){if(!currentUser)throw new Error('Geen testgebruiker actief');if(TEST_MODE_NO_AUTH)return putLegacyStoredFile(id,file);const sb=await getSupabase(),path=`${currentUser.id}/${id}-${safeStorageName(file.name)}`;const {error:uploadError}=await sb.storage.from('kwinest-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});if(uploadError)throw uploadError;const {error:rowError}=await sb.from('documents').insert({user_id:currentUser.id,client_ref:id,name:file.name,kind:'document',mime_type:file.type||'application/octet-stream',storage_path:path,metadata:{size:file.size}});if(rowError){await sb.storage.from('kwinest-documents').remove([path]);throw rowError}return path}
 async function getStoredFile(id){if(!currentUser)return null;if(TEST_MODE_NO_AUTH)return getLegacyStoredFile(id);const sb=await getSupabase();const {data:meta,error}=await sb.from('documents').select('storage_path,name,mime_type').eq('user_id',currentUser.id).eq('client_ref',id).maybeSingle();if(error)throw error;if(!meta)return null;const {data:blob,error:downloadError}=await sb.storage.from('kwinest-documents').download(meta.storage_path);if(downloadError)throw downloadError;return {id,name:meta.name,type:meta.mime_type,blob}}
@@ -9868,7 +9895,8 @@ window.addEventListener('pageshow',e=>{if(e.persisted)void checkForNewAppBuild()
 <script id="boekuna-upload-bootstrap">
 (function(){
  const configs=[
-  ['invoicePdfFile','auto']
+  ['invoicePdfFile','auto'],
+  ['receiptCameraFile','auto']
  ];
  for(const [id,kind] of configs){
   const input=document.getElementById(id);

@@ -96,7 +96,8 @@ try{
   await phone.locator('#pageTitle').filter({hasText:'Kosten'}).waitFor();
   assert.equal(await phone.locator('#invoicePdfFile').evaluate(el=>el.files.length),0);
   assert.equal(await phone.locator('.source-picker, #modalRoot .modal').count(),0,'No picker or modal opens');
-  await phone.locator('.list-filter-chip').filter({hasText:'Zonder bon'}).waitFor();
+  // Kwin 2026-11-05: Zonder bon is one of the chips that are always on the Kosten screen, now switched on.
+  await phone.locator('#content .list-chip-row .filter-btn.active').filter({hasText:'Zonder bon'}).waitFor();
   const vendors=await phone.locator('#content tbody tr strong').allTextContents();
   assert.deepEqual(vendors.map(v=>v.trim()).sort(),['Oud zonder bon','Zonder bon A'],'Only costs without a receipt, from every period');
   await phone.screenshot({path:`tests/artifacts/todo-zonder-bon-${browserName}.png`,fullPage:true});

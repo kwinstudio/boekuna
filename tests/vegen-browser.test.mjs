@@ -113,26 +113,42 @@ try{
     // A swipe that starts at the screen edge is the iPhone's own back gesture.
     await swipe(page,'#content',385,-160);
     assert.equal(await now(page),'invoices');
-    // Left on an open invoice row is that row's "Meer", not a new screen.
+    // Kwin 2026-11-05: a sideways swipe over a list row changes screens too; the row's actions are a long press away.
     const invRow='#content .mobile-card-row[data-bk-invoice="i1"]';
     assert.equal(await page.locator(invRow).count(),1,'The invoice row is on the phone list');
-    {
-      await swipe(page,invRow,300,-160);
-      assert.equal(await now(page),'invoices','The row keeps its own swipe');
-      await page.locator('#modalRoot [role=dialog]').waitFor();
-      // While a sheet is open the screen behind it does not move.
-      await swipe(page,'#content',300,-160);
-      assert.equal(await now(page),'invoices');
-      await page.evaluate(()=>closeModal());
-      await page.waitForFunction(()=>!document.querySelector('#modalRoot [role=dialog]'));
-    }
-    await swipe(page,'#content',300,-160);
-    assert.equal(await now(page),'expenses');
-    // Right on a cost row: the row has no action that way, so it goes back a screen.
+    await swipe(page,invRow,300,-160);
+    assert.equal(await now(page),'expenses','Left over an invoice row goes to Kosten');
+    assert.equal(await page.locator('#modalRoot [role=dialog]').count(),0,'No row menu opened');
     const expRow='#content .mobile-card-row[data-bk-expense="e1"]';
     assert.equal(await page.locator(expRow).count(),1,'The cost row is on the phone list');
     await swipe(page,expRow,120,160);
     assert.equal(await now(page),'invoices');
+    // While a sheet is open the screen behind it does not move.
+    await page.evaluate(()=>invoiceActions('i1'));
+    await page.locator('#modalRoot [role=dialog]').waitFor();
+    await swipe(page,'#content',300,-160);
+    assert.equal(await now(page),'invoices');
+    await page.evaluate(()=>closeModal());
+    await page.waitForFunction(()=>!document.querySelector('#modalRoot [role=dialog]'));
+    // The tab beside you is drawn before you swipe, also when you never opened it: Bonnen sits ready next to Kosten.
+    await page.evaluate(()=>navigate('expenses'));
+    await page.waitForFunction(()=>true);
+    await page.waitForTimeout(2300);
+    {
+      const peekPage=await page.evaluate(async()=>{
+        const el=document.getElementById('content'),y=300;
+        const fire=(tt,x)=>{const touch=new Touch({identifier:8,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent(tt,{bubbles:true,cancelable:true,touches:tt==='touchend'?[]:[touch],targetTouches:tt==='touchend'?[]:[touch],changedTouches:[touch]}))};
+        fire('touchstart',300);
+        for(const x of [288,270,250,230]){await new Promise(r=>setTimeout(r,16));fire('touchmove',x)}
+        const peek=[...document.querySelectorAll('#content')].find(n=>n.classList.contains('bk-peek'));
+        const out=peek?peek.dataset.page+':'+(peek.querySelector('.r1d-hero')?'band':'')+':'+(peek.textContent.includes('Bonnen')?'title':''):'';
+        await new Promise(r=>setTimeout(r,200));fire('touchend',230);
+        return out;
+      });
+      assert.equal(peekPage,'documents:band:title','Bonnen shows beside Kosten during the first swipe there');
+      await page.waitForTimeout(400);
+      assert.equal(await now(page),'expenses','A short slow swipe springs back');
+    }
     await swipe(page,'#content',300,-160);
     await swipe(page,'#content',300,-160);
     assert.equal(await now(page),'documents');

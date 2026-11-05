@@ -215,7 +215,7 @@
     if(action==='invoice'&&typeof newInvoice==='function'){newInvoice();return}
     if(action==='scan'&&typeof modal==='function'){
       modal('Bon scannen','<p class="quick-scan-text">Maak een foto van je bon. Boekuna leest hem uit.</p>',
-        '<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn primary" type="button" onclick="closeModal();openUploadSourcePicker(\'auto\',true)">Camera openen</button>');
+        '<button class="btn" type="button" onclick="closeModal()">Annuleren</button><button class="btn primary" type="button" onclick="closeModal();(window.openReceiptCamera||openUploadSourcePicker)(\'auto\',true)">Camera openen</button>');
     }
   }
   window.boekunaQuickAction=function(action){
