@@ -89,3 +89,22 @@ html[data-theme="dark"] #modalRoot .amount-cents{color:var(--dk-muted,#9AA4AB)}
 .document-processing-card .document-mail-tag{display:inline-block;margin:0 0 0 6px;padding:1px 7px;border-radius:999px;background:var(--app-surface-muted,#EEF2EF);color:var(--app-muted-strong,#5E6870);font-size:11px;font-weight:600;line-height:16px;vertical-align:middle}
 html[data-theme="dark"] #mainApp .inbound-mail-address,html[data-theme="dark"] #mainApp #content .inbound-mail-hint,html[data-theme="dark"] .document-processing-card .document-mail-tag{background:var(--dk-surface-2,#232A2F)}
 html[data-theme="dark"] #mainApp .inbound-mail-new{color:var(--dk-green-ink,#7FE08B)}
+/* What happened to the last mails, and Gmail's forwarding check (2026-11-05). */
+#mainApp .inbound-mail-confirm{margin:14px 0 0;padding:14px;border-radius:14px;background:var(--calm-green-soft,#E8F3EA);min-width:0}
+#mainApp .inbound-mail-confirm strong{display:block;font-size:15px;font-weight:600;line-height:1.35}
+#mainApp .inbound-mail-confirm p{margin:4px 0 10px;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+#mainApp .inbound-mail-confirm .help{margin:10px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#mainApp .inbound-mail-events{margin:16px 0 8px;min-width:0}
+#mainApp .inbound-mail-events h3{margin:0 0 6px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--app-muted-strong,#5E6870)}
+#mainApp .inbound-mail-events ul{list-style:none;margin:0;padding:0}
+#mainApp .inbound-mail-events li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:9px 0;border-top:1px solid var(--app-line,#E6EAE7)}
+#mainApp .inbound-mail-events li:first-child{border-top:0}
+#mainApp .inbound-mail-event-subject{font-size:14px;font-weight:500;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mainApp .inbound-mail-event-meta{font-size:13px;line-height:1.35;color:var(--app-muted-strong,#5E6870)}
+#mainApp .inbound-mail-event-meta b{font-weight:600}
+#mainApp .inbound-mail-events li[data-outcome="stored"] .inbound-mail-event-meta b{color:var(--calm-green,#2F7D3B)}
+#mainApp .inbound-mail-events li[data-outcome="no_files"] .inbound-mail-event-meta b,#mainApp .inbound-mail-events li[data-outcome="failed"] .inbound-mail-event-meta b,#mainApp .inbound-mail-events li[data-outcome="limited"] .inbound-mail-event-meta b{color:var(--warn-ink,#9A5B00)}
+html[data-theme="dark"] #mainApp .inbound-mail-confirm{background:var(--dk-surface-2,#232A2F)}
+html[data-theme="dark"] #mainApp .inbound-mail-events li{border-top-color:var(--dk-line,#2E363C)}
+html[data-theme="dark"] #mainApp .inbound-mail-events li[data-outcome="stored"] .inbound-mail-event-meta b{color:var(--dk-green-ink,#7FE08B)}
+html[data-theme="dark"] #mainApp .inbound-mail-events li[data-outcome="no_files"] .inbound-mail-event-meta b,html[data-theme="dark"] #mainApp .inbound-mail-events li[data-outcome="failed"] .inbound-mail-event-meta b,html[data-theme="dark"] #mainApp .inbound-mail-events li[data-outcome="limited"] .inbound-mail-event-meta b{color:#F2C46B}

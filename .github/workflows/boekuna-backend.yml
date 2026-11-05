@@ -94,10 +94,10 @@ jobs:
           }
       - name: Tenant isolation regression
         run: node tests/tenant-isolation.test.mjs
-      - name: Bonnen mailen edge function (signature, attachments, replay, limits)
-        run: node tests/inbound-mail-function.test.mjs
       - name: Install Node regression dependencies
         run: npm ci --prefix tests --ignore-scripts
+      - name: Bonnen mailen edge function (signature, attachments, mail text as bon, Gmail check, jobs, replay, limits)
+        run: node tests/inbound-mail-function.test.mjs
       - name: Tester invite-code PostgreSQL state machine
         run: node tests/tester-invite-code-sql.test.mjs
       - name: Planned cash migration and two-account PostgreSQL isolation

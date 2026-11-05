@@ -1,14 +1,23 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
 // Bonnen mailen (Kwin 2026-11-04, UI-trucs 18). Every account can have its own address on the
 // inbound domain, e.g. kwinstudio-3f9a1c7e5b2d@bon.boekuna.nl. Resend receives the mail and calls
 // this function with an email.received webhook (metadata only). The function looks up the account
 // by the address, fetches the attachments from Resend and stores each one exactly like an upload
-// from the app: a file in the private bucket plus a documents row marked for processing. The app's
-// normal "resume" then creates the processing job with the user's own session, so the document
-// quota, the processor and the review screen are the same as for a scanned receipt.
+// from the app: a file in the private bucket plus a documents row marked for processing, and the
+// queued processing job. The app runs that job with the user's own session, so the document quota,
+// the processor and the review screen are the same as for a scanned receipt.
 // No automatic reply ever goes back, so an unknown or revoked address tells a sender nothing.
+//
+// Betere logica (Kwin 2026-11-05), the way Dext, Expensify and Moneybird do it:
+// - A mail without a pdf or photo is not dropped. When the mail itself is the receipt (a webshop or
+//   Uber mail with the amounts in the text), it is saved as a pdf of the mail and processed the same way.
+// - Gmail's forwarding confirmation is kept as a code and link the app shows, so automatic forwarding
+//   from Gmail can be switched on. It never becomes a bon.
+// - Every mail leaves an outcome with its subject, so the app can say what happened to it.
+// - The processing job is created right away: an open app hears it and starts reading the bon.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -25,6 +34,9 @@ const MAX_FILES = 10;
 const MAX_BYTES = 15 * 1024 * 1024; // same limit as the document processor
 const MAX_MAILS_PER_DAY = 30; // per account; a leaked address cannot flood the books
 const TOLERANCE_S = 5 * 60;
+const MAX_MAIL_TEXT = 20000; // characters of a mail body turned into a pdf
+const MAX_MAIL_PAGES = 6;
+const EXECUTION_MODE = Deno.env.get("DOCUMENT_EXECUTION_MODE") === "workflow" ? "workflow" : "legacy"; // same as document-processing
 const PDF = new Set(["application/pdf", "application/x-pdf"]);
 const IMAGES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif", "image/tiff", "image/bmp"]);
 const EXT: Record<string, string> = { pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif", tif: "image/tiff", tiff: "image/tiff", bmp: "image/bmp" };
@@ -121,40 +133,212 @@ async function secrets(sb: any) {
   return found;
 }
 
-async function storeFor(sb: any, target: any, data: any, attachments: any[]) {
+// One stored file: the private bucket plus a documents row, the same as an upload from the app.
+async function saveDocument(sb: any, target: any, data: any, clientRef: string, name: string, type: string, bytes: Uint8Array, extra: Record<string, unknown> = {}) {
   const userId = String(target.user_id), emailId = clean(data.email_id, 80);
   const company = target.company_context && typeof target.company_context === "object" ? target.company_context : {};
+  const path = `${userId}/${clientRef}-${safeStorageName(name)}`;
+  const up = await sb.storage.from(BUCKET).upload(path, bytes, { contentType: type, upsert: true });
+  if (up.error) throw Object.assign(new Error("STORAGE_FAILED"), { retry: true });
+  const ins = await sb.from("documents").insert({
+    user_id: userId, client_ref: clientRef, name, kind: "document", mime_type: type, storage_path: path,
+    metadata: {
+      size: bytes.byteLength, batch_id: clean("mail-" + emailId, 120), processing: true, requested_kind: "auto", source: "mail",
+      mail: { from: clean(data.from, 200), subject: clean(data.subject, 200), received_at: clean(data.created_at, 40), ...extra },
+      company_context: { name: clean(company.name, 160), tradeName: clean(company.tradeName, 160), kvk: clean(company.kvk, 40), vat: clean(company.vat, 40) },
+    },
+  });
+  if (ins.error && ins.error.code !== "23505") { await sb.storage.from(BUCKET).remove([path]); throw Object.assign(new Error("DOCUMENT_INSERT_FAILED"), { retry: true }); }
+}
+
+// The processing job, made right away (the same row document-processing's resume would make).
+// An open app hears the new job and starts it with the user's own session; a closed app starts it
+// when it opens. If this fails, that resume still makes the job from the document.
+async function queueJob(sb: any, target: any, clientRef: string) {
+  try {
+    const userId = String(target.user_id);
+    const { data: doc } = await sb.from("documents").select("id,name,mime_type,metadata").eq("user_id", userId).eq("client_ref", clientRef).maybeSingle();
+    if (!doc?.id) return;
+    const meta = doc.metadata && typeof doc.metadata === "object" ? doc.metadata : {};
+    const company = meta.company_context && typeof meta.company_context === "object" ? meta.company_context : {};
+    await sb.from("document_processing_jobs").insert({
+      user_id: userId, document_id: doc.id, client_ref: clientRef, batch_id: clean(meta.batch_id || "mail", 120),
+      file_name: clean(doc.name, 260) || "document", mime_type: clean(doc.mime_type, 160) || "application/octet-stream",
+      size_bytes: Math.max(0, Number(meta.size || 0)), requested_kind: "auto", state: "queued", phase: "queued", execution_mode: EXECUTION_MODE,
+      company_context: { name: clean(company.name, 160), tradeName: clean(company.tradeName, 160), kvk: clean(company.kvk, 40), vat: clean(company.vat, 40) },
+    }); // a second delivery hits the unique (user_id, document_id) and changes nothing
+  } catch (_) { /* resume repairs it */ }
+}
+
+async function storeFor(sb: any, target: any, data: any, attachments: any[]) {
+  const userId = String(target.user_id), emailId = clean(data.email_id, 80);
   let stored = 0;
   for (let i = 0; i < attachments.length; i++) {
     const a = attachments[i];
     const clientRef = clean(`mail-${emailId}-${clean(a.id, 40) || i}`, 120);
     const { data: existing } = await sb.from("documents").select("id").eq("user_id", userId).eq("client_ref", clientRef).maybeSingle();
-    if (existing) { stored++; continue; } // a replayed webhook
-    const name = fileName(a, i), path = `${userId}/${clientRef}-${safeStorageName(name)}`;
+    if (existing) { await queueJob(sb, target, clientRef); stored++; continue; } // a replayed webhook
     const file = await fetch(String(a.download_url || ""), { signal: AbortSignal.timeout(30000) });
     if (!file.ok) throw Object.assign(new Error("ATTACHMENT_DOWNLOAD_FAILED"), { retry: true });
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (bytes.byteLength > MAX_BYTES || bytes.byteLength === 0) continue;
-    const up = await sb.storage.from(BUCKET).upload(path, bytes, { contentType: a.content_type, upsert: true });
-    if (up.error) throw Object.assign(new Error("STORAGE_FAILED"), { retry: true });
-    const ins = await sb.from("documents").insert({
-      user_id: userId, client_ref: clientRef, name, kind: "document", mime_type: a.content_type, storage_path: path,
-      metadata: {
-        size: bytes.byteLength, batch_id: clean("mail-" + emailId, 120), processing: true, requested_kind: "auto", source: "mail",
-        mail: { from: clean(data.from, 200), subject: clean(data.subject, 200), received_at: clean(data.created_at, 40) },
-        company_context: { name: clean(company.name, 160), tradeName: clean(company.tradeName, 160), kvk: clean(company.kvk, 40), vat: clean(company.vat, 40) },
-      },
-    });
-    if (ins.error && ins.error.code !== "23505") { await sb.storage.from(BUCKET).remove([path]); throw Object.assign(new Error("DOCUMENT_INSERT_FAILED"), { retry: true }); }
+    await saveDocument(sb, target, data, clientRef, fileName(a, i), a.content_type, bytes);
+    await queueJob(sb, target, clientRef);
     stored++;
   }
   return stored;
 }
 
-async function record(sb: any, emailId: string, local: string, userId: string | null, outcome: string, files = 0) {
+// --- The mail itself -------------------------------------------------------------------------
+
+const ENTITIES: Record<string, string> = {
+  nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", euro: "€", copy: "©", reg: "®", trade: "™", hellip: "…",
+  ndash: "–", mdash: "—", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", bull: "•", middot: "·", times: "×", deg: "°",
+  eacute: "é", egrave: "è", ecirc: "ê", euml: "ë", aacute: "á", agrave: "à", auml: "ä", iuml: "ï", iacute: "í", oacute: "ó",
+  ouml: "ö", ocirc: "ô", uuml: "ü", uacute: "ú", ccedil: "ç", ntilde: "ñ", szlig: "ß", Eacute: "É", Euml: "Ë", Ouml: "Ö", Uuml: "Ü",
+};
+function decodeEntities(s: string) {
+  return s.replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi, (m, e: string) => {
+    if (e[0] === "#") {
+      const n = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return n > 0 && n < 0x110000 && !(n >= 0xd800 && n < 0xe000) ? String.fromCodePoint(n) : " ";
+    }
+    return ENTITIES[e] ?? ENTITIES[e.toLowerCase()] ?? m;
+  });
+}
+// Readable text from a mail's html: blocks and table rows on their own line, cells side by side.
+export function htmlText(html: string) {
+  const s = String(html || "").slice(0, 800_000)
+    .replace(/<(head|style|script|title|noscript)\b[\s\S]*?<\/\1\s*>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-6]|table|thead|tbody|tfoot|section|article|header|footer|blockquote|center)\s*>/gi, "\n")
+    .replace(/<\/(td|th)\s*>/gi, "   ")
+    .replace(/<[^>]*>/g, "");
+  return tidy(decodeEntities(s));
+}
+function tidy(s: string) {
+  const lines = String(s || "").replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/[ \t\u00a0\u200b\u200c\u200d\ufeff]+/g, " ").trim());
+  const out: string[] = [];
+  for (const l of lines) if (l || (out.length && out[out.length - 1] !== "")) out.push(l);
+  return out.join("\n").trim();
+}
+const MONEY = /(€|\beur\b|\beuro)\s*-?\d{1,7}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d{1,7}(?:[.,]\d{3})*[.,]\d{2}\s*(?:€|\beur\b)/i;
+const RECEIPT_WORDS = /(totaal|total|te betalen|bedrag|btw|vat|factuur|invoice|kassabon|receipt|ontvangstbewijs|bestelling|order|betaling|payment|amount)/i;
+// The text of a mail, from its plain-text part when that holds the amounts, otherwise from the html.
+export function mailText(mail: any) {
+  const text = tidy(String(mail?.text || "").slice(0, 400_000));
+  const fromHtml = mail?.html ? htmlText(mail.html) : "";
+  const pick = text && (MONEY.test(text) || !fromHtml) ? text : fromHtml || text;
+  return pick.slice(0, MAX_MAIL_TEXT);
+}
+// Only a mail that reads like a receipt or invoice becomes a document: an amount in euro, or an
+// amount next to a word like totaal, btw or factuur. "Test" or "zie bijlage" without the file does not.
+export function looksLikeReceipt(text: string) {
+  const t = String(text || "").slice(0, MAX_MAIL_TEXT);
+  return MONEY.test(t) || (RECEIPT_WORDS.test(t) && /\b\d{1,7}[.,]\d{2}\b/.test(t));
+}
+
+// Gmail asks the forwarding address to confirm before it forwards anything ("(#123456789) Gmail
+// Forwarding Confirmation"). Its code and link go to the app; the link only counts when it is Google's own.
+export function gmailForwardConfirm(data: any, mail: any) {
+  const from = String(mail?.from || data?.from || "").toLowerCase(), subject = String(mail?.subject || data?.subject || "");
+  if (!from.includes("forwarding-noreply@google.com") && !/gmail.{0,30}(forwarding|doorstuur|weiterleitung|transfert)/i.test(subject)) return null;
+  const text = String(mail?.text || "") + "\n" + (mail?.html ? htmlText(mail.html) : "");
+  const hrefs = String(mail?.html || "").replace(/&amp;/gi, "&");
+  const code = (subject.match(/\(#\s?(\d{6,12})\)/) || text.match(/(?:code|bevestigingscode)\D{0,24}(\d{6,12})/i) || [])[1] || "";
+  const link = ((text + " " + hrefs).match(/https:\/\/(?:mail-settings|mail)\.google\.com\/mail\/[^\s"'<>]{4,600}/i) || [])[0] || "";
+  const account = (subject.match(/([a-z0-9._%+-]{1,64}@[a-z0-9.-]{1,120}\.[a-z]{2,24})/i) || [])[1] || "";
+  if (!code && !link) return null;
+  return { code, link, account: account.toLowerCase() };
+}
+
+// The standard pdf font knows WinAnsi only: accents stay, other characters get a plain twin or "?".
+const WIN_ANSI_EXTRA = new Set("€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ");
+const PDF_TEXT_SWAPS: Record<string, string> = { "Ł": "L", "ł": "l", "ı": "i", "Đ": "D", "đ": "d", "Ħ": "H", "ħ": "h", "→": "->", "←": "<-", "≤": "<=", "≥": ">=", "−": "-", "‐": "-", "‑": "-", "′": "'", "″": '"' };
+const winAnsi = (ch: string) => { const c = ch.codePointAt(0) || 0; return (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WIN_ANSI_EXTRA.has(ch); };
+export function pdfText(value: unknown) {
+  let out = "";
+  for (const ch of String(value ?? "")) {
+    if (winAnsi(ch)) { out += ch; continue; }
+    if (PDF_TEXT_SWAPS[ch]) { out += PDF_TEXT_SWAPS[ch]; continue; }
+    if (/\s/.test(ch)) { out += " "; continue; }
+    const plain = ch.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+    out += plain && [...plain].every(winAnsi) ? plain : "?";
+  }
+  return out;
+}
+function wrap(line: string, font: any, size: number, width: number) {
+  const out: string[] = [];
+  let current = "";
+  for (let word of pdfText(line).split(" ")) {
+    while (font.widthOfTextAtSize(word, size) > width) { // a long link: break it by characters
+      const head = current ? current + " " : "";
+      let lo = 0, hi = Math.min(word.length, 400);
+      while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (font.widthOfTextAtSize(head + word.slice(0, mid), size) <= width) lo = mid; else hi = mid - 1; }
+      if (!lo && current) { out.push(current); current = ""; continue; }
+      const n = Math.max(1, lo);
+      out.push(head + word.slice(0, n)); current = ""; word = word.slice(n);
+    }
+    const next = current ? current + " " + word : word;
+    if (current && font.widthOfTextAtSize(next, size) > width) { out.push(current); current = word; } else current = next;
+  }
+  out.push(current);
+  return out;
+}
+function dutchTime(v: unknown) {
+  const d = new Date(String(v || ""));
+  if (isNaN(d.getTime())) return clean(v, 40);
+  try { return d.toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam", dateStyle: "long", timeStyle: "short" }); } catch { return d.toISOString(); }
+}
+// A plain A4 pdf of the mail: who sent it, the subject, the date and the text, so the processor reads
+// it like any other receipt and the 7-year archive keeps what was received.
+export async function mailPdf(data: any, text: string) {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica), bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  pdf.setTitle(pdfText(clean(data?.subject, 200) || "Mail"));
+  pdf.setProducer("Boekuna"); pdf.setCreator("Boekuna, bonnen mailen");
+  const W = 595.28, H = 841.89, M = 50, width = W - 2 * M, ink = rgb(0.1, 0.12, 0.11), muted = rgb(0.4, 0.44, 0.42);
+  let page = pdf.addPage([W, H]), y = H - M, full = false;
+  const put = (t: string, f = font, size = 10, color = ink) => {
+    if (full) return;
+    if (y < M) { if (pdf.getPageCount() >= MAX_MAIL_PAGES) { full = true; return; } page = pdf.addPage([W, H]); y = H - M; }
+    if (t) page.drawText(t, { x: M, y, size, font: f, color });
+    y -= size + 4;
+  };
+  for (const [label, value] of [["Van", data?.from], ["Onderwerp", data?.subject], ["Ontvangen", dutchTime(data?.created_at)]]) {
+    for (const l of wrap(`${label}: ${clean(value, 300)}`, bold, 9, width)) put(l, bold, 9, muted);
+  }
+  y -= 8;
+  for (const para of String(text || "").slice(0, MAX_MAIL_TEXT).split("\n")) for (const l of wrap(para, font, 10, width)) put(l);
+  return await pdf.save();
+}
+function mailFileName(data: any) {
+  const subject = clean(data?.subject, 90).replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  return (subject || "Bon uit mail") + ".pdf";
+}
+// The mail itself as the bon, when it has no usable attachment.
+async function storeBody(sb: any, target: any, data: any, text: string) {
+  const userId = String(target.user_id), emailId = clean(data.email_id, 80);
+  const clientRef = clean(`mail-${emailId}-tekst`, 120);
+  const { data: existing } = await sb.from("documents").select("id").eq("user_id", userId).eq("client_ref", clientRef).maybeSingle();
+  if (!existing) await saveDocument(sb, target, data, clientRef, mailFileName(data), "application/pdf", await mailPdf(data, text), { body: true });
+  await queueJob(sb, target, clientRef);
+  return 1;
+}
+
+// The outcome of one mail for one address. detail (subject, Gmail code) needs migration
+// 20261105140000; before that is run the outcome is still kept, without it.
+async function record(sb: any, emailId: string, local: string, userId: string | null, outcome: string, files = 0, detail: Record<string, string> | null = null) {
   const patch: Record<string, unknown> = { outcome, files };
   if (userId) patch.user_id = userId;
-  await sb.from("inbound_mail_events").update(patch).eq("email_id", emailId).eq("local_part", local);
+  if (detail) patch.detail = detail;
+  const res = await sb.from("inbound_mail_events").update(patch).eq("email_id", emailId).eq("local_part", local);
+  if (res?.error && detail) {
+    delete patch.detail;
+    if (outcome === "forward_confirm") patch.outcome = "no_files";
+    await sb.from("inbound_mail_events").update(patch).eq("email_id", emailId).eq("local_part", local);
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -173,7 +357,7 @@ Deno.serve(async (req: Request) => {
   const data = event.data || {}, emailId = clean(data.email_id, 80);
   if (!emailId) return reply(200, { ok: true, ignored: true });
   const outcomes: string[] = [];
-  let attachments: any[] | null = null;
+  let attachments: any[] | null = null, mail: any = null;
   try {
     for (const local of localParts(data)) {
       // Claim this mail for this address once; a replay of a finished mail does nothing.
@@ -189,12 +373,26 @@ Deno.serve(async (req: Request) => {
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { count } = await sb.from("inbound_mail_events").select("id", { count: "exact", head: true }).eq("user_id", target.user_id).eq("outcome", "stored").gte("created_at", since);
       if (Number(count || 0) >= MAX_MAILS_PER_DAY) { await record(sb, emailId, local, target.user_id, "limited"); outcomes.push("limited"); continue; }
+      const detail: Record<string, string> = { subject: clean(data.subject, 120) };
       if (!attachments) attachments = (await resend(`/emails/receiving/${encodeURIComponent(emailId)}/attachments`, resendKey))?.data || [];
       const { picked } = pickAttachments(attachments || []);
-      if (!picked.length) { await record(sb, emailId, local, target.user_id, "no_files"); outcomes.push("no_files"); continue; }
-      const stored = await storeFor(sb, target, data, picked);
-      await record(sb, emailId, local, target.user_id, stored ? "stored" : "no_files", stored);
-      outcomes.push(stored ? "stored" : "no_files");
+      const stored = picked.length ? await storeFor(sb, target, data, picked) : 0;
+      if (stored) { await record(sb, emailId, local, target.user_id, "stored", stored, detail); outcomes.push("stored"); continue; }
+      // No pdf or photo: the mail itself may be Gmail's forwarding check or the receipt.
+      if (!mail) mail = (await resend(`/emails/receiving/${encodeURIComponent(emailId)}`, resendKey)) || {};
+      const confirm = gmailForwardConfirm(data, mail);
+      if (confirm) {
+        await record(sb, emailId, local, target.user_id, "forward_confirm", 0, { ...detail, code: confirm.code, link: confirm.link.slice(0, 600), account: confirm.account.slice(0, 120) });
+        outcomes.push("forward_confirm"); continue;
+      }
+      const text = mailText(mail);
+      if (looksLikeReceipt(text)) {
+        await storeBody(sb, target, data, text);
+        await record(sb, emailId, local, target.user_id, "stored", 1, { ...detail, from_text: "1" });
+        outcomes.push("stored_text"); continue;
+      }
+      await record(sb, emailId, local, target.user_id, "no_files", 0, detail);
+      outcomes.push("no_files");
     }
   } catch (err: any) {
     // Only an outcome code in the logs: no addresses, names or file contents.

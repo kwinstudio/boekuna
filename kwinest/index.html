@@ -5846,7 +5846,7 @@ async function loadInboundAddress(opts={}){
    console.warn('Mailadres voor bonnen',err?.code||err?.message||err);
    inboundAddress={...inboundAddress,loaded:true,loading:null,error:/PLAN_REQUIRED/.test(String(err?.message||''))?'plan':'failed'};
   }
-  document.querySelectorAll('[data-inbound-mail]').forEach(el=>{el.outerHTML=el.dataset.inboundMail==='hint'?inboundMailHintHtml():inboundMailPanelHtml()});
+  document.querySelectorAll('[data-inbound-mail="hint"],[data-inbound-mail="panel"]').forEach(el=>{if(el.isConnected)el.outerHTML=el.dataset.inboundMail==='hint'?inboundMailHintHtml():inboundMailPanelHtml()});
   return inboundAddressText()
  })();
  return inboundAddress.loading
@@ -5867,11 +5867,70 @@ function inboundMailPanelHtml(){
  if(!inboundAddress.loaded||inboundAddress.loading){if(!inboundAddress.loading)void loadInboundAddress();return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel"><p class="help">Je adres wordt opgehaald…</p></div>'}
  if(!inboundAddress.local)return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel">'+(inboundAddress.error==='plan'?'<p class="help">Bonnen mailen hoort bij ZZP en Pro.</p>':'<p class="inbound-mail-lead">Krijg je eigen mailadres voor bonnen. Stuur een bon of factuur als bijlage door en hij staat in Bonnen.</p>'+(inboundAddress.error?'<p class="help">Dat lukte net niet. Probeer het opnieuw.</p>':'')+'<button type="button" class="btn primary small" onclick="loadInboundAddress({create:true})">Adres maken</button>')+'</div>';
  return '<div class="card settings-compact inbound-mail-card" data-inbound-mail="panel">'
-  +'<p class="inbound-mail-lead">Stuur een bon of factuur als bijlage naar dit adres. Hij staat dan in Bonnen, klaar om te controleren.</p>'
+  +'<p class="inbound-mail-lead">Stuur een bon of factuur naar dit adres. Hij staat dan in Bonnen, klaar om te controleren.</p>'
   +'<div class="inbound-mail-address"><span class="inbound-mail-text" translate="no">'+esc(inboundAddressText())+'</span>'+inboundMailCopyButton()+'</div>'
-  +'<p class="help">Pdf of foto, tot 10 bijlagen per mail. Geef het adres alleen aan wie je bonnen stuurt.</p>'
+  +'<p class="help">Als pdf of foto, of de bon in de mail zelf. Doorsturen vanuit Gmail kan ook. Geef het adres alleen aan wie je bonnen stuurt.</p>'
+  +inboundMailEventsHtml()
   +'<button type="button" class="link-btn inbound-mail-new" onclick="renewInboundAddress()">Nieuw adres</button>'
   +'</div>'
+}
+// What happened to the last mails (Kwin 2026-11-05): every mail shows up here, also one without a bon,
+// so nobody is left guessing. Gmail's forwarding check shows its code and Google's own link.
+let inboundEvents={list:[],loaded:false,loading:null};
+function refreshInboundEvents(){inboundEvents.loaded=false;if(!inboundEvents.loading)return loadInboundEvents();return inboundEvents.loading}
+async function loadInboundEvents(){
+ if(!inboundMailAllowed())return [];
+ if(inboundEvents.loading)return inboundEvents.loading;
+ const userId=currentUser.id;
+ inboundEvents.loading=(async()=>{
+  try{
+   let rows=[];
+   if(TEST_MODE_NO_AUTH)rows=typeof window.boekunaInboundMailEvents==='function'?await window.boekunaInboundMailEvents():[];
+   else{
+    const sb=await getSupabase();
+    let res=await sb.from('inbound_mail_events').select('created_at,outcome,files,detail').eq('user_id',userId).order('created_at',{ascending:false}).limit(5);
+    if(res.error)res=await sb.from('inbound_mail_events').select('created_at,outcome,files').eq('user_id',userId).order('created_at',{ascending:false}).limit(5); // before the detail column exists
+    if(res.error)throw res.error;
+    rows=res.data||[];
+   }
+   if(currentUser?.id!==userId)return [];
+   inboundEvents={list:Array.isArray(rows)?rows.slice(0,5):[],loaded:true,loading:null};
+  }catch(err){
+   console.warn('Gemailde bonnen',err?.code||err?.message||err);
+   inboundEvents={...inboundEvents,loaded:true,loading:null};
+  }
+  document.querySelectorAll('[data-inbound-mail="events"]').forEach(el=>{if(el.isConnected)el.outerHTML=inboundMailEventsHtml()});
+  return inboundEvents.list
+ })();
+ return inboundEvents.loading
+}
+function inboundMailEventLabel(e){
+ const files=Number(e?.files||0);
+ if(e?.outcome==='stored')return files>1?files+' bonnen opgeslagen':e?.detail?.from_text?'Bon uit de mail opgeslagen':'Bon opgeslagen';
+ return {no_files:'Geen bon gevonden',limited:'Daglimiet bereikt',not_entitled:'Hoort bij ZZP en Pro',failed:'Niet gelukt, stuur hem opnieuw',received:'Wordt verwerkt',forward_confirm:'Gmail vraagt om bevestiging'}[e?.outcome]||'Ontvangen'
+}
+function inboundMailEventTime(at){
+ const d=new Date(at);if(isNaN(d))return '';
+ const day=d.toDateString()===new Date().toDateString()?'Vandaag':d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
+ return day+' '+d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})
+}
+const GMAIL_CONFIRM_LINK=/^https:\/\/(mail-settings|mail)\.google\.com\/mail\/[^\s"'<>]+$/i;
+function inboundMailEventsHtml(){
+ if(!inboundEvents.loaded){if(!inboundEvents.loading)void loadInboundEvents();return '<div data-inbound-mail="events" hidden></div>'}
+ const list=inboundEvents.list||[],latest=list[0],d=latest?.detail||{};
+ let html='<div class="inbound-mail-events-wrap" data-inbound-mail="events">';
+ // Gmail sends its code first; once forwarded mail arrives, the newest row is no longer the check.
+ if(latest?.outcome==='forward_confirm'&&Date.now()-Date.parse(latest.created_at)<7*864e5&&(d.code||d.link)){
+  const link=GMAIL_CONFIRM_LINK.test(String(d.link||''))?String(d.link):'',code=/^\d{6,12}$/.test(String(d.code||''))?String(d.code):'';
+  html+='<div class="inbound-mail-confirm"><strong>Gmail wil bonnen doorsturen</strong><p>'+(d.account?'Bevestig dat <b translate="no">'+esc(d.account)+'</b> mag doorsturen.':'Bevestig in Gmail dat het mag doorsturen.')+'</p>'
+   +(link?'<a class="btn primary small" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Bevestigen in Gmail</a>':'')
+   +(code?'<p class="help">Of vul deze code in bij Gmail: <b translate="no">'+esc(code)+'</b> <button type="button" class="btn small" onclick="copyTextValue(this,\''+esc(code)+'\')">Kopiëren</button></p>':'')+'</div>';
+ }
+ html+='<div class="inbound-mail-events"><h3>Laatste mails</h3>';
+ html+=list.length?'<ul>'+list.map(e=>'<li data-outcome="'+esc(e.outcome||'')+'"><span class="inbound-mail-event-subject">'+esc(e?.detail?.subject||'Mail')+'</span><span class="inbound-mail-event-meta">'+esc(inboundMailEventTime(e.created_at))+' · <b>'+esc(inboundMailEventLabel(e))+'</b></span></li>').join('')+'</ul>'
+  +(latest?.outcome==='no_files'?'<p class="help">Stuur de bon mee als pdf of foto.</p>':'')
+  :'<p class="help">Nog geen mail ontvangen. Een bon staat er meestal binnen een minuut.</p>';
+ return html+'</div></div>'
 }
 function renewInboundAddress(){
  askConfirm('Nieuw adres maken?',{title:'Nieuw adres maken?',text:'Het oude adres werkt dan meteen niet meer.',ok:'Nieuw adres'},async()=>{
@@ -5891,13 +5950,14 @@ function openInboundMailSettings(){
  if(typeof window.openSettingsSection==='function')window.openSettingsSection('mailin');else navigate('settings')
 }
 // A mail can arrive while the app is closed: picking the app up again starts its processing.
+// A mailed bon arriving while the app is open is started at once (soon: the mail function just queued it).
 let documentResumeAt=0;
-function resumeDocumentProcessingSoon(){
- if(TEST_MODE_NO_AUTH||!currentUser||Date.now()-documentResumeAt<30000)return;
+function resumeDocumentProcessingSoon(opts={}){
+ if(TEST_MODE_NO_AUTH||!currentUser||Date.now()-documentResumeAt<(opts.soon?3000:30000))return;
  documentResumeAt=Date.now();
  invokeDocumentProcessing('resume').then(()=>fetchDocumentProcessingJobs()).catch(()=>{})
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resumeDocumentProcessingSoon()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;resumeDocumentProcessingSoon();if(document.querySelector('[data-inbound-mail="events"]'))void refreshInboundEvents()});
 async function handleMailboxReturn(){
  const u=new URL(location.href),connected=u.searchParams.get('mail_connected'),err=u.searchParams.get('mail_error');
  if(!connected&&!err)return;
@@ -7402,7 +7462,7 @@ async function initDocumentBackgroundProcessing(){
  void loadInboundAddress();
  void initLocalFirstForUser();
  if(typeof sb?.channel!=='function'){schedulePersistentDocumentPoll();return}
- documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},()=>{fetchDocumentProcessingJobs().catch(()=>{})}).subscribe(function(status){
+ documentProcessingChannel=sb.channel('document-processing-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'document_processing_jobs',filter:'user_id=eq.'+currentUser.id},payload=>{fetchDocumentProcessingJobs().catch(()=>{});if(payload?.eventType==='INSERT'&&String(payload?.new?.client_ref||'').startsWith('mail-')){resumeDocumentProcessingSoon({soon:true});if(document.querySelector('[data-inbound-mail="events"]'))void refreshInboundEvents()}}).subscribe(function(status){
   if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){documentProcessingConnectivityLost=true;renderGlobalDocumentIndicator();schedulePersistentDocumentPoll()}
   if(status==='SUBSCRIBED'){documentProcessingConnectivityLost=!navigator.onLine;renderGlobalDocumentIndicator()}
  })

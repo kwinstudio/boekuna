@@ -6,6 +6,7 @@ import {PGlite} from '@electric-sql/pglite';
 // auth.uid() and the plan are fixture inputs; tables, RLS and the RPCs are the real SQL.
 const db=new PGlite();
 const sql=fs.readFileSync(new URL('../supabase/migrations/20261104140000_inbound_mail.sql',import.meta.url),'utf8');
+const detailSql=fs.readFileSync(new URL('../supabase/migrations/20261105140000_inbound_mail_detail.sql',import.meta.url),'utf8');
 const a='00000000-0000-4000-8000-00000000000a',b='00000000-0000-4000-8000-00000000000b',start='00000000-0000-4000-8000-00000000000c';
 async function as(id){await db.exec('reset role');await db.query("select set_config('test.uid',$1,false)",[id||'']);await db.exec('set role '+(id?'authenticated':'anon'))}
 async function asService(){await db.exec('reset role');await db.query("select set_config('test.uid','',false)");await db.exec('set role service_role')}
@@ -70,5 +71,20 @@ try{
  assert.equal((await db.query('select outcome from public.inbound_mail_events')).rows[0].outcome,'stored','The owner can see what arrived');
  await as(b);
  assert.equal((await db.query('select * from public.inbound_mail_events')).rows.length,0);
- console.log('Inbound mail SQL: addresses, rotation, plan gate, RLS and replay: PASS');
+
+ // 20261105140000: each event keeps a small detail (subject, Gmail code) and Gmail's check is an outcome.
+ await db.exec('reset role');
+ await db.exec(detailSql);await db.exec(detailSql); // a replay is safe
+ await asService();
+ assert.deepEqual((await db.query("select detail from public.inbound_mail_events where email_id='e1'")).rows[0].detail,{},'Old rows get an empty detail');
+ await db.query("insert into public.inbound_mail_events(email_id,local_part,user_id,outcome,detail) values ('e2',$1,$2,'forward_confirm',$3::jsonb)",[active,a,JSON.stringify({subject:'(#481516234) Gmail Forwarding Confirmation',code:'481516234',link:'https://mail-settings.google.com/mail/vf-x',account:'kwin@gmail.example'})]);
+ await assert.rejects(db.query("update public.inbound_mail_events set outcome='spam' where email_id='e2'"),/check constraint/);
+ await assert.rejects(db.query("update public.inbound_mail_events set detail='[1]'::jsonb where email_id='e2'"),/check constraint/,'Detail is an object');
+ await assert.rejects(db.query("update public.inbound_mail_events set detail=jsonb_build_object('subject',repeat('x',5000)) where email_id='e2'"),/check constraint/,'Detail stays small');
+ await as(a);
+ assert.deepEqual((await db.query("select outcome,detail->>'code' as code from public.inbound_mail_events where email_id='e2'")).rows,[{outcome:'forward_confirm',code:'481516234'}],'The owner sees the Gmail code');
+ await assert.rejects(db.query("update public.inbound_mail_events set detail='{}'::jsonb"),/permission denied/,'Users only read');
+ await as(b);
+ assert.equal((await db.query('select * from public.inbound_mail_events')).rows.length,0,'Another account still sees nothing');
+ console.log('Inbound mail SQL: addresses, rotation, plan gate, RLS, replay and event detail: PASS');
 }finally{await db.close()}
