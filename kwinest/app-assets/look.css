@@ -1818,8 +1818,11 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   /* The page itself is the light colour (the top strip of the iPhone stays ink like the band). */
   html:root:root:has(#mainApp:not(.hidden)):has(#content) body:has(#mainApp:not(.hidden)){background:var(--c-canvas)!important;min-height:100vh}
   /* The band: ink with a green glow, round at the bottom; the top bar above it is the same ink. */
-  html body #mainApp#mainApp#mainApp:has(#content:where(:not(.bk-peek)) .r1d-hero) .topbar{background:var(--r1d-top)!important}
-  html body #mainApp#mainApp#mainApp #content>.r1d-hero{--r1d-on:#fff;--r1d-on-soft:rgba(255,255,255,.76);--r1d-glass:rgba(255,255,255,.12);background:radial-gradient(85% 55% at 50% 60%,var(--c-glow) 0%,var(--r1d-top) 100%)!important;border-radius:0 0 30px 30px;margin-left:-12px!important;margin-right:-12px!important;padding-bottom:22px!important}
+  /* Kwin 2026-11-05: the glow runs on behind the menu and search buttons, so the top is one piece. The band reaches up under
+     the see-through top bar (its height comes from look.js); once you scroll, the bar turns ink (klopt.js bk-compact). */
+  html body #mainApp#mainApp#mainApp:has(#content:where(:not(.bk-peek)) .r1d-hero) .topbar{background:transparent!important;z-index:56}
+  html body #mainApp#mainApp#mainApp #content>.r1d-hero{margin-top:calc(-14px - var(--r1d-topbar-h,68px))!important;padding-top:calc(14px + var(--r1d-topbar-h,68px))!important}
+  html body #mainApp#mainApp#mainApp #content>.r1d-hero{--r1d-on:#fff;--r1d-on-soft:rgba(255,255,255,.76);--r1d-glass:rgba(255,255,255,.12);background:radial-gradient(90% 60% at 50% 52%,var(--c-glow) 0%,var(--r1d-top) 100%)!important;border-radius:0 0 30px 30px;margin-left:-12px!important;margin-right:-12px!important;padding-bottom:22px!important}
   html body #mainApp#mainApp#mainApp #content>.r1d-hero :is(.r1d-action-icon,.r1d-action>span:first-child){color:var(--c-mint)}
   html body #mainApp#mainApp#mainApp #content>.r1d-hero .r1d-trend{background:rgba(143,227,160,.16);color:var(--c-mint)}
   /* On the light page: ink text, white pills with a thin line; the chip that is on is ink. */

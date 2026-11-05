@@ -404,3 +404,12 @@
   document.addEventListener('pointerdown',function(){root.classList.add('is-pointer')},true);
   document.addEventListener('keydown',function(e){if(e.key==='Tab'||e.key==='Escape'||e.key==='Enter'||e.key===' ')root.classList.remove('is-pointer')},true);
 })();
+
+/* 30. Kleur C (Kwin 2026-11-05): the band reaches up behind the see-through top bar, so it needs the bar's height. */
+(function(){
+  'use strict';
+  var root=document.documentElement,last='';
+  function measure(){var bar=document.querySelector('#mainApp .topbar');if(!bar)return;var h=Math.round(bar.getBoundingClientRect().height)+'px';if(h!=='0px'&&h!==last){last=h;root.style.setProperty('--r1d-topbar-h',h)}}
+  function start(){measure();var bar=document.querySelector('#mainApp .topbar');if(bar&&window.ResizeObserver)new ResizeObserver(measure).observe(bar);window.addEventListener('resize',measure)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
