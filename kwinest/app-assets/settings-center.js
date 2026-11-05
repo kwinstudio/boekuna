@@ -440,7 +440,7 @@
     if(window.matchMedia('(max-width:820px)').matches)window.scrollTo({top:0,behavior:'instant'});
     if(!opts||opts.focus!==false){var h=panel.querySelector('h2');if(h)h.focus({preventScroll:true})}
     if(key==='security')loadMfaStatus();
-    if(key==='mailin'&&typeof ensureInboundAddress==='function')ensureInboundAddress();
+    if(key==='mailin'&&typeof ensureInboundAddress==='function'){ensureInboundAddress();if(typeof refreshInboundEvents==='function')refreshInboundEvents()}
     if(key==='help'&&window.BoekunaFeedback)window.BoekunaFeedback.refreshPanelReports();
   }
 
