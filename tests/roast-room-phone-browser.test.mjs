@@ -75,7 +75,7 @@ try{
   // V1: the bottom bar floats as a rounded glass pill above the screen edge; the + is ink (kleur C, Kwin 2026-11-05).
   const bar=await page.evaluate(()=>{const n=document.getElementById('mobileBottomNav'),r=n.getBoundingClientRect(),cs=getComputedStyle(n),fab=getComputedStyle(document.getElementById('quickNew'));return {left:r.left,right:r.right,bottom:r.bottom,radius:parseFloat(cs.borderTopLeftRadius),fab:fab.backgroundColor}});
   assert.ok(bar.left>=8&&bar.right<=382&&bar.bottom<=838&&bar.radius>=24,'Glass pill: '+JSON.stringify(bar));
-  assert.equal(bar.fab,'rgb(18, 22, 20)');
+  assert.equal(bar.fab,'rgb(10, 10, 10)');
   await context.close();
 
   // M1: with motion on, a closing sheet slides down as a copy, and a swipe down on its top closes it.

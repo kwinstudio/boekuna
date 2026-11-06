@@ -166,7 +166,7 @@ try{
   // Dark mode follows the app theme, so there is no white flash for dark users.
   {
     const {context,page}=await open({query:'intro=1&ready=1500',colorScheme:'dark'});
-    assert.equal(await page.locator('#appBootstrap').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(21, 25, 28)');
+    assert.equal(await page.locator('#appBootstrap').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(10, 10, 10)');
     await page.waitForTimeout(1300);
     await shot(page,'intro-dark');
     await context.close();
