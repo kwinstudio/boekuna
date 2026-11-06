@@ -1,5 +1,7 @@
 # BOEKUNA — Canonical Brand Identity
 
+> **Vervangen op 6 november 2026 door [HUISSTIJL-D.md](HUISSTIJL-D.md)** (zwart, wit en één groene punt). Dit document blijft als geschiedenis.
+
 Status: **canonical source of truth**  
 Approved reference: user-supplied BOEKUNA identity board, 5 October 2026  
 Applies to: public BOEKUNA brand, marketing website, social/brand applications and future visual alignment work.

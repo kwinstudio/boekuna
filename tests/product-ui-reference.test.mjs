@@ -215,7 +215,7 @@ try{
       assert.doesNotMatch(appFont,/Boekuna Inter|Boekuna Space/,browserName+' app must not use legacy webfonts as its primary UI font');
       assert.match(headingFont,/-apple-system|Segoe UI|Roboto/,browserName+' headings must use the same native system stack');
       assert.equal(await page.locator('#sidebar').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
-      assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(236, 250, 238)');
+      assert.equal(await page.locator('.nav-item.active').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(240, 240, 242)');
       const semanticColours=await page.evaluate(()=>{
         const probe=document.createElement('div');
         probe.id='semanticColourProbe';
@@ -281,7 +281,7 @@ try{
       assert.ok(await invoicePrimary.isVisible());
       // Desktop keuze A (Kwin 2026-10-28): the page's main button sits on the green band as a white pill with deep green text.
       assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
-      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(15, 42, 26)');
+      assert.equal(await invoicePrimary.evaluate(el=>getComputedStyle(el).color),'rgb(10, 10, 10)');
       assert.notEqual(await page.locator('.product-kpi-icon').first().evaluate(el=>getComputedStyle(el).display),'none','Desktop product KPI icons must remain visible');
       assert.equal(await page.getByRole('button',{name:'Factuur maken',exact:true}).count(),1,browserName+' Inkomsten primary action');
       assert.equal(await page.getByRole('button',{name:'Factuur uploaden',exact:true}).count(),1,browserName+' Inkomsten secondary action');
@@ -527,7 +527,7 @@ try{
         const activeMobileStyle=await activeMobileNav.evaluate(el=>{const s=getComputedStyle(el),label=getComputedStyle(el.querySelector('span'));return {background:s.backgroundColor,color:label.color,boxShadow:s.boxShadow,borderTopWidth:s.borderTopWidth,fontWeight:label.fontWeight}});
         assert.equal(activeMobileStyle.background,'rgba(0, 0, 0, 0)',browserName+' mobile '+width+' active destination has no block behind it');
         // Kwin 2026-11-05 (kleur C): the bar is a white glass pill; the open page is ink, the others grey.
-        assert.equal(activeMobileStyle.color,'rgb(18, 22, 20)',browserName+' mobile '+width+' active destination label is ink on the white bar');
+        assert.equal(activeMobileStyle.color,'rgb(10, 10, 10)',browserName+' mobile '+width+' active destination label is ink on the white bar');
         assert.equal(activeMobileStyle.boxShadow,'none',browserName+' mobile '+width+' active destination must not use a decorative shadow');
         assert.equal(activeMobileStyle.borderTopWidth,'0px',browserName+' mobile '+width+' active destination has no line on top');
         assert.ok(Number.parseInt(activeMobileStyle.fontWeight,10)>=700,browserName+' mobile '+width+' active destination must retain a font-weight selection cue');

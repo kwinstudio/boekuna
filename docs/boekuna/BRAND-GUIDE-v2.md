@@ -1,5 +1,7 @@
 # BOEKUNA Brand Guide v2 — Calm Control
 
+> **Vervangen op 6 november 2026 door [HUISSTIJL-D.md](HUISSTIJL-D.md)** (zwart, wit en één groene punt). Dit document blijft als geschiedenis.
+
 > **SUPERSEDED FOR PUBLIC BRAND / MARKETING.** The canonical BOEKUNA identity is now `docs/boekuna/BRAND-IDENTITY-CANONICAL.md` (approved 5 October 2026): `#1B1F23`, `#63D471`, `#F6F7F8`, `#8A949C`, `#FFFFFF`; Space Grotesk + Inter. This file remains for historical/product-layer context and must not be used as the marketing brand source of truth.
 
 Status: approved final identity · production asset set  

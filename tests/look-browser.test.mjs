@@ -109,7 +109,7 @@ try{
     assert.ok(hero.left===0&&hero.right===390&&Math.abs(hero.top)<=1,'The band runs edge to edge, from the very top behind the top bar: '+JSON.stringify(hero));
     // Kwin 2026-11-05 (kleur C, "inkt met een groene gloed"): the page is light, the colour lives only in the band: ink with a
     // green glow under an ink top bar.
-    assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(244, 244, 242)','The screen is light');
+    assert.equal(await page.evaluate(()=>getComputedStyle(document.body).backgroundColor),'rgb(245, 245, 247)','The screen is light (huisstijl D)');
     assert.match(hero.bg,/radial-gradient/,'The band is ink with a glow');
     assert.equal(hero.barBg,'rgba(0, 0, 0, 0)','The top bar lets the band through');
     assert.ok(hero.pickTop>=hero.winstBottom&&hero.pickRight<=390,'The period button sits under Winst: '+JSON.stringify(hero));

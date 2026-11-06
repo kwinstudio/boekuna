@@ -39,7 +39,7 @@ private struct LoadingView: View {
         ZStack {
             if showDot {
                 Circle()
-                    .fill(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
+                    .fill(Color(red: 61 / 255, green: 220 / 255, blue: 132 / 255))
                     .frame(width: 10, height: 10)
                     .opacity(dimmed ? 0.4 : 1)
                     .accessibilityLabel("Boekuna laden")
@@ -78,8 +78,8 @@ private struct FailureView: View {
 
             Button("Opnieuw proberen", action: retry)
                 .buttonStyle(.borderedProminent)
-                .tint(Color(red: 99 / 255, green: 212 / 255, blue: 113 / 255))
-                .foregroundStyle(Color(red: 27 / 255, green: 31 / 255, blue: 35 / 255))
+                .tint(Color(red: 10 / 255, green: 10 / 255, blue: 10 / 255))
+                .foregroundStyle(Color.white)
         }
         .padding(28)
         .frame(maxWidth: 420)

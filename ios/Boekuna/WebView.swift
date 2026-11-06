@@ -107,7 +107,7 @@ struct BoekunaWebView: UIViewRepresentable {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.keyboardDismissMode = .interactive
         webView.isOpaque = false
-        webView.backgroundColor = UIColor(named: "LaunchBackground") ?? UIColor(red: 246 / 255, green: 247 / 255, blue: 248 / 255, alpha: 1)
+        webView.backgroundColor = UIColor(named: "LaunchBackground") ?? UIColor(red: 245 / 255, green: 245 / 255, blue: 247 / 255, alpha: 1)
 
 #if DEBUG
         if #available(iOS 16.4, *) {

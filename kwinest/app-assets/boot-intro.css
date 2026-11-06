@@ -8,11 +8,11 @@
      2020-2180 the dot lands with a soft ring, then everything rests and fades into the app.
    If the app is not ready after 2.5 s the screen becomes a quiet loading state. */
 .boot-intro{
-  --boot-bg:#F6F7F8;
-  --boot-ink:#1B1F23;
+  --boot-bg:#F5F5F7;
+  --boot-ink:#0A0A0A;
   --boot-muted:#5E6870;
-  --boot-green:#63D471;
-  --boot-glow:rgba(99,212,113,.11);
+  --boot-green:#3DDC84;
+  --boot-glow:rgba(10,10,10,.04);
   --boot-doc:#FFFFFF;
   --boot-doc-line:#E2E6E9;
   --boot-doc-ink:#9AA4AB;
@@ -38,10 +38,10 @@
   user-select:none;
 }
 html[data-theme="dark"] .boot-intro{
-  --boot-bg:#15191C;
-  --boot-ink:#EEF1F3;
+  --boot-bg:#0A0A0A;
+  --boot-ink:#F5F5F7;
   --boot-muted:#A3ADB5;
-  --boot-glow:rgba(99,212,113,.08);
+  --boot-glow:rgba(255,255,255,.04);
   --boot-doc:#222A30;
   --boot-doc-line:#36414A;
   --boot-doc-ink:#6E7A84;
@@ -66,7 +66,7 @@ html[data-theme="dark"] .boot-intro{
   place-items:center;
   transition:transform var(--boot-fade) cubic-bezier(.4,0,.2,1);
 }
-/* The official wordmark (logo zip, Space Grotesk Bold) as outlines: same proportions
+/* The official wordmark (huisstijl D: Onest SemiBold, green dot) as outlines: same proportions
    everywhere, no font download, no layout shift. */
 .boot-intro-mark{
   display:block;
