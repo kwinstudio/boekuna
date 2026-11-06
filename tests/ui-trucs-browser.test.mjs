@@ -137,7 +137,12 @@ try{
 
     // 3. No red block: one bucket is a count, two or more are low bars.
     assert.equal(await page.evaluate(()=>dashboardCostBars([{from:today(),to:today(),costs:20}])),'<span class="r1d-note r1d-cost-count">1 kostenpost<i>Albert Heijn</i></span>');
-    assert.match(await page.evaluate(()=>dashboardCostBars([{from:'2026-01-01',to:'2026-01-05',costs:0},{from:'2026-01-06',to:'2026-01-10',costs:20}])),/^<span class="r1d-bars"/);
+    // Volledige check 2026-11-06: btw-nummer, IBAN and KVK are stored the official way, so the invoice shows them right.
+    assert.deepEqual(await page.evaluate(()=>{const c=normalizeCompanyIds({vat:'nl 1234.56789.b01',iban:'nl91 abna 0417 1643 00',kvk:'1234 5678'});return [c.vat,c.iban,c.kvk]}),['NL123456789B01','NL91ABNA0417164300','12345678']);
+    assert.deepEqual(await page.evaluate(()=>{const c=normalizeCompanyIds({vat:'weet ik niet',iban:'',kvk:'123'});return [c.vat,c.iban,c.kvk]}),['weet ik niet','','123']);
+    // Volledige check 2026-11-06: an empty week next to one with costs is still one red block, so no bars yet.
+    assert.doesNotMatch(await page.evaluate(()=>dashboardCostBars([{from:'2026-01-01',to:'2026-01-05',costs:0},{from:'2026-01-06',to:'2026-01-10',costs:20}])),/r1d-bars/);
+    assert.match(await page.evaluate(()=>dashboardCostBars([{from:'2026-01-01',to:'2026-01-05',costs:8},{from:'2026-01-06',to:'2026-01-10',costs:20}])),/^<span class="r1d-bars"/);
     assert.equal(await page.evaluate(()=>dashboardCostBars([{from:'2020-01-01',to:'2020-01-02',costs:0}])),'','Nothing in the period: nothing extra');
 
     // 5 without klopt.js: the plain confirm still decides (automated dialog handlers keep working).
