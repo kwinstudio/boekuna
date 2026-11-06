@@ -163,7 +163,11 @@ assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls mus
 for(const id of ["invoicePdfFile"]){
   assert.ok(html.includes(`['${id}'`),`${id} must be registered in the isolated upload bootstrap`);
 }
-assert.ok(!html.includes('id="receiptCameraFile"')&&!html.includes('id="receiptPhotoFile"'),"Scan must share one native file picker");
+// Bon scannen opens the camera straight away on a phone (#369): one camera input next to the shared picker, same
+// upload bootstrap and the same image allowlist; there is still no separate photo-library picker.
+assert.ok(!html.includes('id="receiptPhotoFile"'),"Scan must not add a second photo picker next to the shared native file picker");
+assert.match(html,/<input class="hidden" type="file" id="receiptCameraFile" accept="(image\/[a-z+.-]+,?)+" capture="environment">/,"The camera input only accepts listed image types and opens the camera");
+assert.ok(html.includes("['receiptCameraFile','auto']"),"The camera input must go through the isolated upload bootstrap");
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");
