@@ -215,6 +215,21 @@ Eindtotaal EUR 121,00
     assert processor.money_cents(result.amounts.total) == 12100, result.model_dump()
 
 
+def test_balance_after_payment_is_not_the_total():
+    # Kwin 2026-11-06: a paid Klarna receipt mailed to Boekuna read "Nog te betalen € 0,00" as the
+    # total. What is still open is the balance; the printed "Totaal" is the invoice total.
+    def run(text):
+        doc = {"kind":"pdf","pageCount":1,"text":text,"nativeText":text,"tables":[],"layout":[],"ocrPages":[],"warnings":[]}
+        return processor.heuristic_extract(doc, "betaald.pdf", {"name":"Kinzare"}).amounts
+    paid_first = run("Van: winparts.nl\nBetaald: € 43,63\nNog te betalen: € 0,00\nRemblokken set: € 35,49\nVerzending: € 6,99\nTotaal: € 43,63\n")
+    assert processor.money_cents(paid_first.total) == 4363, paid_first
+    paid_last = run("Leverancier: Shop BV\nTotaal € 121,00\nBetaald € 21,00\nOpenstaand bedrag € 100,00\n")
+    assert processor.money_cents(paid_last.total) == 12100, paid_last
+    # "Totaal te betalen" is still the total, and a balance alone still stands in for it.
+    assert processor.money_cents(run("Leverancier: Shop BV\nSubtotaal € 100,00\nTotaal te betalen € 121,00\n").total) == 12100
+    assert processor.money_cents(run("Leverancier: Shop BV\nNog te betalen € 55,00\n").total) == 5500
+
+
 if __name__ == "__main__":
     tests = [
         test_quality_gate_flags_low_resolution_and_darkness,
@@ -230,6 +245,7 @@ if __name__ == "__main__":
         test_informational_percentage_does_not_create_false_mixed_vat,
         test_semantic_mixed_vat_description_still_requires_review,
         test_eindtotaal_is_a_strong_total_label,
+        test_balance_after_payment_is_not_the_total,
     ]
     for test in tests:
         test()

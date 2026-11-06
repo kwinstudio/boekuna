@@ -622,6 +622,9 @@ def bare_amount_line(line:str)->bool:
 
 AMOUNT_LABEL_HINT_RE=re.compile(r"\b(?:totaal|total|subtotaal|subtotal|btw|vat|tax|te betalen|te voldoen|amount due|bedrag|amount|betaald|paid|pin|korting|discount|verzendkosten|shipping)\b",re.I)
 PAYMENT_STATUS_LINE_RE=re.compile(r"\b(?:betaald|paid|pin|ideal|contant|cash|voldaan)\b",re.I)
+# What is still open after a payment ("Nog te betalen € 0,00", "Openstaand", "Saldo") is the
+# balance, not the invoice total; it only stands in for the total when nothing else is printed.
+BALANCE_LINE_RE=re.compile(r"^\s*(?:nog\s+te\s+(?:betalen|voldoen)|openstaand(?:\s+(?:bedrag|saldo))?|restant(?:\s+bedrag)?|resterend(?:\s+bedrag)?|remaining(?:\s+balance)?|outstanding(?:\s+(?:amount|balance))?|balance\s+due|saldo)\b",re.I)
 
 def amount_line_convention(lines:list[str])->str|None:
     """Does this document print a label's amount on the line after it, or before it?
@@ -2513,6 +2516,7 @@ def strong_total_anchor(lines:list[str],convention:str|None="auto")->tuple[float
         if "€" in line or re.search(r"\b(?:eur|euro)\b",low,re.I):score=min(.99,score+.005)
         if i>=max(0,len(lines)-12):score=min(.99,score+.005)
         if adjacent:score-=.02
+        if BALANCE_LINE_RE.search(line):score=min(score,.9)
         candidates.append((abs(vals[-1]),score))
     return max(candidates,key=lambda x:x[1]) if candidates else (None,0.0)
 
@@ -2721,7 +2725,7 @@ def heuristic_extract(doc:dict, filename:str, company:dict)->ExtractionResult:
         for i,l in enumerate(amount_lines):
             if re.search(r"\b(eindtotaal|totaal|total amount|total|te betalen|amount due)\b",l,re.I) and not re.search(r"subtotaal|subtotal|excl|btw|vat",l,re.I):
                 vals=money_tokens(l)
-                if vals:cands.append((abs(vals[-1]),.72+(i/len(lines) if lines else 0)*.08))
+                if vals:cands.append((abs(vals[-1]),.72+(i/len(lines) if lines else 0)*.08-(.1 if BALANCE_LINE_RE.search(l) else 0)))
         if cands: total,total_conf=max(cands,key=lambda x:x[1])
     if subtotal is not None and vat_total is None and total is not None:
         candidate=round(total-subtotal,2)

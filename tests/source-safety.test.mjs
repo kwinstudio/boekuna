@@ -163,7 +163,10 @@ assert.ok(html.includes("input.dataset.uploadBound='true'"),"Upload controls mus
 for(const id of ["invoicePdfFile"]){
   assert.ok(html.includes(`['${id}'`),`${id} must be registered in the isolated upload bootstrap`);
 }
-assert.ok(!html.includes('id="receiptCameraFile"')&&!html.includes('id="receiptPhotoFile"'),"Scan must share one native file picker");
+assert.ok(!html.includes('id="receiptPhotoFile"'),"Scan must not add a separate photo library picker");
+// Bon scannen opens the camera directly (Kwin 2026-11-05, #369): exactly one camera input, on the same image allowlist.
+assert.equal((html.match(/id="receiptCameraFile"/g)||[]).length,1,"Scan has exactly one camera input");
+assert.ok(/id="receiptCameraFile" accept="image\/jpeg,[^"*]*" capture="environment"/.test(html),"The camera input uses the image allowlist and opens the back camera");
 assert.ok(html.includes("async function startSelectedDocumentUpload"),"Selected documents must enter one shared, user-visible upload pipeline");
 assert.ok(html.includes("pendingPdfImport=null"),"Document import state must be declared before cleanup/use");
 assert.ok(html.includes("pendingUploadKind='auto'"),"Upload mode state must be declared explicitly");

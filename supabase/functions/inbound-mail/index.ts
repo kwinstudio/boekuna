@@ -286,17 +286,112 @@ function wrap(line: string, font: any, size: number, width: number) {
   out.push(current);
   return out;
 }
-function dutchTime(v: unknown) {
-  const d = new Date(String(v || ""));
-  if (isNaN(d.getTime())) return clean(v, 40);
-  try { return d.toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam", dateStyle: "long", timeStyle: "short" }); } catch { return d.toISOString(); }
+const MONTHS: Record<string, number> = {
+  jan: 0, januari: 0, january: 0, feb: 1, februari: 1, february: 1, mrt: 2, maa: 2, maart: 2, mar: 2, march: 2, apr: 3, april: 3,
+  mei: 4, may: 4, jun: 5, juni: 5, june: 5, jul: 6, juli: 6, july: 6, aug: 7, augustus: 7, august: 7, sep: 8, sept: 8, september: 8,
+  okt: 9, oktober: 9, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+};
+const NL_MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+function amsterdam(d: Date, time = false) {
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Amsterdam", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d).map((p) => [p.type, p.value]));
+    const day = `${Number(parts.day)} ${NL_MONTHS[Number(parts.month) - 1]} ${parts.year}`;
+    return time ? `${day}, ${parts.hour}:${parts.minute}` : day;
+  } catch { return d.toISOString().slice(0, time ? 16 : 10).replace("T", " "); }
 }
-// A plain A4 pdf of the mail: who sent it, the subject, the date and the text, so the processor reads
+// "wo 4 nov 2026 om 16:53", "Wed, Nov 4, 2026 at 4:53 PM", "woensdag 4 november 2026 16:53" or
+// "04-11-2026" as "4 november 2026". Never "2026 om 16:53": the processor reads "2026 OM" as a postcode.
+export function mailDate(value: unknown, fallback?: unknown) {
+  const v = String(value || "").toLowerCase();
+  let m = v.match(/(\d{1,2})\s+([a-z]{3,9})\.?,?\s+(\d{4})/), day = 0, month = -1, year = 0;
+  if (m && MONTHS[m[2]] !== undefined) { day = +m[1]; month = MONTHS[m[2]]; year = +m[3]; }
+  else if ((m = v.match(/\b([a-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/)) && MONTHS[m[1]] !== undefined) { day = +m[2]; month = MONTHS[m[1]]; year = +m[3]; }
+  else if ((m = v.match(/\b(\d{4})-(\d{2})-(\d{2})(?!\d)/))) { year = +m[1]; month = +m[2] - 1; day = +m[3]; }
+  else if ((m = v.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?!\d)/))) { day = +m[1]; month = +m[2] - 1; year = +m[3]; }
+  if (month >= 0 && day >= 1 && day <= 31 && year >= 2000 && year <= 2100) return `${day} ${NL_MONTHS[month]} ${year}`;
+  const d = new Date(String(fallback || ""));
+  return isNaN(d.getTime()) ? "" : amsterdam(d);
+}
+
+// A forwarded mail (Gmail, Apple Mail, Outlook; Dutch and English): the shop's own Van, Datum and
+// Onderwerp from the forwarded block, and only the text below it. Whoever forwarded is never the supplier.
+const FWD_MARK = /^(?:-{2,}\s*(?:doorgestuurd bericht|forwarded message|original message|oorspronkelijk bericht|origineel bericht)\s*-{2,}|begin (?:doorgestuurd bericht|forwarded message)\s*:?|_{8,})$/i;
+const FWD_KEYS: Record<string, string> = {
+  van: "from", from: "from", datum: "date", date: "date", verzonden: "date", sent: "date",
+  onderwerp: "subject", subject: "subject", aan: "to", to: "to", cc: "to", "beantwoorden aan": "to", "reply-to": "to",
+};
+export function forwarded(text: string) {
+  const lines = String(text || "").split("\n");
+  for (let i = 0; i < Math.min(lines.length, 300); i++) {
+    if (!FWD_MARK.test(lines[i])) continue;
+    const head: Record<string, string> = {};
+    let j = i + 1;
+    while (j < lines.length && !lines[j]) j++;
+    for (; j < lines.length && j < i + 20; j++) {
+      const m = lines[j].match(/^([a-z][a-z -]{0,18}?)\s*:\s*(.*)$/i), key = m ? FWD_KEYS[m[1].toLowerCase()] : "";
+      if (!key) break;
+      if (!head[key]) head[key] = m![2].trim();
+    }
+    if (head.from) return { from: head.from, date: head.date || "", subject: head.subject || "", body: lines.slice(j).join("\n").trim() };
+  }
+  return null;
+}
+
+// "Klarna <noreply-nl@klarna.nl>" -> { name: "Klarna", address: "noreply-nl@klarna.nl" }
+function sender(value: unknown) {
+  const v = clean(value, 300), address = ((v.match(/<([^<>\s]+@[^<>\s]+)>/) || v.match(/([^\s<>"]+@[^\s<>"]+)/) || [])[1] || "").toLowerCase();
+  const name = v.replace(/<[^>]*>/g, "").replace(/["']/g, "").trim();
+  return { name: name && name.toLowerCase() !== address ? name : "", address, text: v };
+}
+// A payment provider's mail is about a payment to a shop: that shop is the supplier, not Klarna or PayPal.
+const PAY_PROVIDERS = /(^|[.@])(klarna|paypal|afterpay|riverty|payin3|in3|tikkie|billink|mollie)\.[a-z.]{2,12}$/i;
+const PAID_TO = /\b(?:betaling|betaald|bestelling|aankoop|aankopen|verzonden|gestuurd|payment|purchase|order|sent|paid)\s+(?:aan|bij|voor|to|at|with)\s+([^\s,!?:;()<>]{2,60}(?:\s+[^\s,!?:;()<>]{1,30}){0,3}?)(?=\s+(?:ontvangen|is|was|gelukt|voltooid|geslaagd|verwerkt|bevestigd|betaald|received|completed|confirmed|succeeded)\b|\s*[!?,:;(\n]|\.\s|\.?\s*$)/i;
+// Someone's own mailbox: the person who mailed the bon, not the shop.
+const PERSONAL_MAIL = /@(gmail|googlemail|hotmail|outlook|live|msn|icloud|me|mac|yahoo|ymail|aol|ziggo|kpnmail|kpnplanet|planet|home|hetnet|xs4all|telfort|chello|caiway|zeelandnet|proton|protonmail|pm|gmx|web)\.[a-z.]{2,8}$/i;
+export function mailHeader(data: any, text: string) {
+  const fwd = forwarded(text);
+  const from = sender(fwd ? fwd.from : data?.from), subject = clean(fwd?.subject || data?.subject, 300).replace(/^(?:(?:fwd?|fw|doorst|tr|wg)\s*:\s*)+/i, "");
+  const rows: [string, string][] = [];
+  const merchant = PAY_PROVIDERS.test(from.address) ? ((subject + "\n" + (fwd ? fwd.body : text).slice(0, 2000)).match(PAID_TO) || [])[1] || "" : "";
+  if (merchant) rows.push(["Van", merchant.replace(/\.$/, "")], ["Via", from.name || from.address]);
+  else if (from.address && PERSONAL_MAIL.test(from.address)) rows.push(["Doorgestuurd door", from.text]);
+  else if (from.text) rows.push(["Van", from.text]);
+  const date = mailDate(fwd?.date, data?.created_at);
+  if (date) rows.push(["Datum", date]);
+  if (subject) rows.push(["Onderwerp", subject]);
+  return { rows, body: fwd ? fwd.body : String(text || "") };
+}
+
+// Mails made from html tables put a label and its value on separate lines ("Totaal", "", "€ 43,63");
+// the processor reads a total only as "Totaal: € 43,63". Images, bare links and rules are left out.
+const AMOUNT_LINE = new RegExp(`^-?\\s*(?:${MONEY.source})\\s*$`, "i");
+export function receiptLines(text: string) {
+  const src = String(text || "").split("\n")
+    .map((l) => l.replace(/\[(?:image|afbeelding)[^\]]*\]/gi, "").replace(/<(?:https?|mailto):[^>\s]*>/gi, "").trim())
+    .filter((l) => !/^(?:[-_=*~.·•]\s*){5,}$/.test(l) && !/^(?:https?:\/\/|mailto:)\S+$/i.test(l) && l !== "." && l !== ",");
+  const out: string[] = [];
+  const label = (l: string) => l.length <= 40 && /^[\p{L}(]/u.test(l) && !/\d/.test(l) && !/[.!?,;]$/.test(l) && l.split(/\s+/).length <= 6;
+  for (let i = 0; i < src.length; i++) {
+    const l = src[i];
+    if (l && label(l)) {
+      let j = i + 1;
+      while (j < src.length && !src[j]) j++;
+      const v = src[j] || "", gap = j > i + 1;
+      const valueLike = v.length <= 40 && /\d/.test(v) && v.split(/\s+/).length <= 6 && !label(v);
+      if (v && (AMOUNT_LINE.test(v) || (gap && valueLike))) { out.push(`${l.replace(/:$/, "")}: ${v}`); i = j; continue; }
+    }
+    if (l || (out.length && out[out.length - 1] !== "")) out.push(l);
+  }
+  return out.join("\n").trim();
+}
+
+// A plain A4 pdf of the mail: who it is from, the date, the subject and the text, so the processor reads
 // it like any other receipt and the 7-year archive keeps what was received.
 export async function mailPdf(data: any, text: string) {
+  const { rows, body } = mailHeader(data, text);
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica), bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  pdf.setTitle(pdfText(clean(data?.subject, 200) || "Mail"));
+  pdf.setTitle(pdfText(mailSubject(data) || "Mail"));
   pdf.setProducer("Boekuna"); pdf.setCreator("Boekuna, bonnen mailen");
   const W = 595.28, H = 841.89, M = 50, width = W - 2 * M, ink = rgb(0.1, 0.12, 0.11), muted = rgb(0.4, 0.44, 0.42);
   let page = pdf.addPage([W, H]), y = H - M, full = false;
@@ -306,15 +401,16 @@ export async function mailPdf(data: any, text: string) {
     if (t) page.drawText(t, { x: M, y, size, font: f, color });
     y -= size + 4;
   };
-  for (const [label, value] of [["Van", data?.from], ["Onderwerp", data?.subject], ["Ontvangen", dutchTime(data?.created_at)]]) {
-    for (const l of wrap(`${label}: ${clean(value, 300)}`, bold, 9, width)) put(l, bold, 9, muted);
-  }
+  for (const [label, value] of rows) for (const l of wrap(`${label}: ${value}`, bold, 9, width)) put(l, bold, 9, muted);
   y -= 8;
-  for (const para of String(text || "").slice(0, MAX_MAIL_TEXT).split("\n")) for (const l of wrap(para, font, 10, width)) put(l);
+  for (const para of receiptLines(body.slice(0, MAX_MAIL_TEXT)).split("\n")) for (const l of wrap(para, font, 10, width)) put(l);
+  const d = new Date(String(data?.created_at || ""));
+  if (!isNaN(d.getTime())) { y -= 8; put(pdfText(`Naar Boekuna gemaild op ${amsterdam(d, true)}.`), font, 8, muted); }
   return await pdf.save();
 }
+function mailSubject(data: any) { return clean(data?.subject, 200).replace(/^(?:(?:fwd?|fw|doorst|tr|wg)\s*:\s*)+/i, ""); }
 function mailFileName(data: any) {
-  const subject = clean(data?.subject, 90).replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+  const subject = mailSubject(data).slice(0, 90).replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
   return (subject || "Bon uit mail") + ".pdf";
 }
 // The mail itself as the bon, when it has no usable attachment.

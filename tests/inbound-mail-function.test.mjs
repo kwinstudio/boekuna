@@ -57,11 +57,14 @@ const ATTACHMENTS=[
  {id:'att-zip',filename:'stukken.zip',content_type:'application/zip',content_disposition:'attachment',size:900,download_url:'https://inbound-cdn.resend.test/att-zip'}
 ];
 // The mails themselves, for the ones without a usable attachment.
+// A Klarna payment forwarded from Gmail (shape of Kwin's mail of 2026-11-06, without his details).
+const KLARNA_FWD=['--------- Doorgestuurd bericht --------','Van: Klarna <noreply-nl@klarna.nl>','Datum: wo 4 nov 2026 om 16:53','Onderwerp: We hebben je betaling aan winparts.nl ontvangen','Aan: <kwin.test@gmail.example>','','','Je betaling van € 43,63 is geslaagd.','[image: Klarna]','<https://click.klarna.example/a>','','Samenvatting','','','winparts.nl','------------------------------','','Besteldatum','','29 september 2026','------------------------------','','Betaald','','€ 43,63','------------------------------','','Nog te betalen','','€ 0,00','------------------------------','','Remblokken set','','€ 35,49','------------------------------','','Verzending','','€ 6,99','------------------------------','','Totaal','','€ 43,63','','Klarna Bank AB (publ)','Sveavägen 46','BTW reg. nr: SE556737043101'].join('\n');
 const MAILS={
  'mail-empty':{from:'kwin@gmail.example',subject:'test',text:'test\n\nVerstuurd vanaf mijn iPhone',html:'<p>test</p>'},
  'mail-html':{from:'Bol <orders@bol.example>',subject:'Je bestelling 1234',text:'',html:'<html><head><style>td{color:red}</style><title>x</title></head><body><h1>Bedankt voor je bestelling</h1><table><tr><td>USB-C kabel</td><td>&euro;&nbsp;19,99</td></tr><tr><td>Verzending</td><td>&#8364; 4,00</td></tr><tr><th>Totaal</th><th>€ 23,99</th></tr></table><p>Btw 21%: € 4,16<br>Ordernummer: 1234 · Café “De Hoek” 🎉</p><p>'+'x'.repeat(3000)+'</p></body></html>'},
  'mail-gmail':{from:'Gmail Team <forwarding-noreply@google.com>',subject:'(#481516234) Gmail Forwarding Confirmation - Receive Mail from Kwin.Test@gmail.example',text:'kwin.test@gmail.example has requested to automatically forward mail to your email address.\nConfirmation code: 481516234\n\nTo allow, please click the link below to confirm the request:\n\nhttps://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz\n\nIf you click the link and it appears to be broken...',html:''},
- 'mail-fake-gmail':{from:'forwarding-noreply@google.com',subject:'(#999999999) Gmail Forwarding Confirmation',text:'Click https://evil.example/mail/vf-steal to confirm',html:'<a href="https://evil.example/x">confirm</a>'}
+ 'mail-fake-gmail':{from:'forwarding-noreply@google.com',subject:'(#999999999) Gmail Forwarding Confirmation',text:'Click https://evil.example/mail/vf-steal to confirm',html:'<a href="https://evil.example/x">confirm</a>'},
+ 'mail-fwd':{from:'kwin.test@gmail.example',subject:'Fwd: We hebben je betaling aan winparts.nl ontvangen',text:KLARNA_FWD,html:''}
 };
 function fakeFetch(){
  const calls=[];
@@ -190,6 +193,45 @@ const json=r=>r.json();
  // A huge mail without spaces still makes a small pdf quickly.
  const t0=Date.now(),big=await fn.mailPdf({subject:'Groot',from:'a@b.example',created_at:'2026-11-05'},'€ 1,00 '+'y'.repeat(30000)+'\n'+'regel\n'.repeat(4000));
  const doc=await pdfLib.PDFDocument.load(big);assert.ok(doc.getPageCount()<=6);assert.ok(Date.now()-t0<5000,'fast enough');
+}
+{
+ // Forwarded mails (Kwin 2026-11-06): the shop is the supplier, never whoever forwarded the mail, and
+ // a label and its amount on separate lines become one line, so the processor reads the total.
+ const {db,fn,post}=await load();
+ const f=fn.forwarded(KLARNA_FWD);
+ assert.deepEqual([f.from,f.date,f.subject],['Klarna <noreply-nl@klarna.nl>','wo 4 nov 2026 om 16:53','We hebben je betaling aan winparts.nl ontvangen']);
+ assert.ok(f.body.startsWith('Je betaling van € 43,63 is geslaagd.'),'Only the text below the forwarded header');
+ const apple=fn.forwarded('Kijk even\n\nBegin forwarded message:\n\nFrom: Shop <a@shop.example>\nSubject: Your order\nDate: November 4, 2026 at 16:53:00 GMT+1\nTo: Me <me@icloud.example>\n\nTotal € 5,00');
+ assert.deepEqual([apple.from,apple.subject,apple.body],['Shop <a@shop.example>','Your order','Total € 5,00']);
+ const outlook=fn.forwarded('________________________________\nVan: Shop BV <f@shop.example>\nVerzonden: dinsdag 3 november 2026 10:00\nAan: Kwin\nOnderwerp: Factuur 12\n\nTotaal € 5,00');
+ assert.deepEqual([outlook.from,outlook.date,outlook.subject],['Shop BV <f@shop.example>','dinsdag 3 november 2026 10:00','Factuur 12']);
+ assert.equal(fn.forwarded('Totaal € 5,00\nVan: iemand'),null,'No forward marker, no forward');
+
+ // Dates without "om 16:53": the processor read "2026 OM" as a postcode.
+ for(const [v,want] of [['wo 4 nov 2026 om 16:53','4 november 2026'],['Wed, Nov 4, 2026 at 4:53 PM','4 november 2026'],['dinsdag 3 november 2026 10:00','3 november 2026'],['04-11-2026','4 november 2026'],['2026-11-04T15:53:00Z','4 november 2026']])assert.equal(fn.mailDate(v),want,v);
+ assert.equal(fn.mailDate('',"2026-11-06T23:30:00Z"),'7 november 2026','Falls back to the day it arrived, in Dutch time');
+ assert.equal(fn.mailDate('gisteren'),'');
+
+ assert.equal(fn.receiptLines('Totaal\n\n€ 43,63\n------------------------------\n\nNog te betalen\n\n€ 0,00\n[image: Klarna]\n<https://x.example/a>\nBesteldatum\n\n29 september 2026\nVerzending\n€ 6,99\nKlarna Bank AB (publ)\nSveavägen 46\nHoi! Je betaling is gelukt.\n\n€ 1,00'),
+  'Totaal: € 43,63\n\nNog te betalen: € 0,00\n\nBesteldatum: 29 september 2026\nVerzending: € 6,99\nKlarna Bank AB (publ)\nSveavägen 46\nHoi! Je betaling is gelukt.\n\n€ 1,00');
+
+ // Who the bon is from: the shop paid through Klarna or PayPal, the shop itself, or nobody when it is the user.
+ const head=(data,text)=>fn.mailHeader({created_at:'2026-11-06T12:01:55Z',...data},text);
+ const k=head({from:'kwin.test@gmail.example',subject:'Fwd: We hebben je betaling aan winparts.nl ontvangen'},KLARNA_FWD);
+ assert.deepEqual(k.rows,[['Van','winparts.nl'],['Via','Klarna'],['Datum','4 november 2026'],['Onderwerp','We hebben je betaling aan winparts.nl ontvangen']]);
+ assert.ok(!JSON.stringify(k.rows).includes('gmail'),'The one who forwarded is not in the header');
+ assert.deepEqual(head({from:'PayPal <service@paypal.nl>',subject:'Receipt for your payment to Bol.com'},'Total € 5,00').rows[0],['Van','Bol.com']);
+ assert.deepEqual(head({from:'Klarna <info@klarna.nl>',subject:'Je herinnering'},'Bedrag € 5,00').rows[0],['Van','Klarna <info@klarna.nl>'],'No shop named: the provider stays');
+ assert.deepEqual(head({from:'Bol <orders@bol.example>',subject:'Je bestelling 1234'},'Totaal € 5,00').rows,[['Van','Bol <orders@bol.example>'],['Datum','6 november 2026'],['Onderwerp','Je bestelling 1234']]);
+ assert.deepEqual(head({from:'kwin.test@gmail.example',subject:'tankbon'},'Shell € 65,00').rows[0],['Doorgestuurd door','kwin.test@gmail.example'],'Your own mailbox is never the supplier');
+
+ // Through the webhook: one pdf named after the shop's subject, the event keeps the subject as mailed.
+ assert.deepEqual((await json(await post(received('mail-fwd',[LOCAL+'@bon.boekuna.nl'],{from:'kwin.test@gmail.example',subject:'Fwd: We hebben je betaling aan winparts.nl ontvangen'})))).outcomes,['stored_text']);
+ const [doc]=db.tables.documents;
+ assert.equal(doc.name,'We hebben je betaling aan winparts.nl ontvangen.pdf');
+ const parsed=await pdfLib.PDFDocument.load(db.storage.get(doc.storage_path).bytes);
+ assert.equal(parsed.getTitle(),'We hebben je betaling aan winparts.nl ontvangen');assert.equal(parsed.getPageCount(),1);
+ assert.equal(db.tables.inbound_mail_events[0].detail.subject,'Fwd: We hebben je betaling aan winparts.nl ontvangen');
 }
 {
  // Thirty stored mails a day per account; the next one waits.
