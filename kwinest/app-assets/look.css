@@ -1856,3 +1856,33 @@ html[data-theme="dark"] .help-search-box input{background:var(--dk-raised,#21272
   html.boekuna-gevoel body #mainApp#mainApp #content .gv-calm-meter{background:var(--c-pill-line)}
   html.boekuna-gevoel body #mainApp#mainApp #content .gv-calm-cta{background:var(--c-ink);color:var(--c-canvas)}
 }
+}
+/* (closes the media block still open above, so section 31 applies at every width) */
+/* 31. Huisstijl D overal (Kwin 2026-11-06; volledige check found green and teal left behind). Main buttons (Volgende,
+   Opslaan, Invullen, Bon scannen) are black with white text, the toast is graphite, the tiles in + Nieuw and the initials
+   are grey with ink. Green stays only for the logo dot and where something is good (money in, done, charts).
+   Dark: the main button is the green dot colour with black text, like the +, because a white surface may not sit on dark. */
+html body #mainApp#mainApp .btn.primary,html body #modalRoot#modalRoot .btn.primary{background:#0A0A0A!important;border-color:#0A0A0A!important;color:#FFFFFF!important}
+html body #mainApp#mainApp .btn.primary .icon,html body #modalRoot#modalRoot .btn.primary .icon{color:#FFFFFF!important}
+html[data-theme="dark"] body #mainApp#mainApp .btn.primary,html[data-theme="dark"] body #modalRoot#modalRoot .btn.primary{background:#3DDC84!important;border-color:#3DDC84!important;color:#0A0A0A!important}
+html[data-theme="dark"] body #mainApp#mainApp .btn.primary .icon,html[data-theme="dark"] body #modalRoot#modalRoot .btn.primary .icon{color:#0A0A0A!important}
+html body #mainApp#mainApp .btn.primary[disabled],html body #modalRoot#modalRoot .btn.primary[disabled]{opacity:.45}
+html body #toastRoot#toastRoot .toast{background:#1C1C1E!important;color:#FFFFFF!important;border-color:#1C1C1E!important}
+html body #toastRoot#toastRoot .toast :is(.icon,a,button){color:#FFFFFF!important}
+html[data-theme="dark"] body #toastRoot#toastRoot .toast{background:#2C2C2E!important;border-color:#3A3A3C!important}
+html body #modalRoot#modalRoot#modalRoot :is(.quick-action,.quick-tile,.quick-action-main) .quick-action-icon{background:#F0F0F2!important;color:#0A0A0A!important}
+html body #modalRoot#modalRoot#modalRoot .quick-tile .quick-action-icon{background:transparent!important}
+html[data-theme="dark"] body #modalRoot#modalRoot#modalRoot :is(.quick-action,.quick-tile,.quick-action-main) .quick-action-icon{background:#2C2C2E!important;color:#F5F5F7!important}
+html[data-theme="dark"] body #modalRoot#modalRoot#modalRoot .quick-tile .quick-action-icon{background:transparent!important}
+html body #sidebar#sidebar .drawer-avatar,html body #mainApp#mainApp#mainApp .settings-profile-avatar{background:#F0F0F2;color:#0A0A0A}
+html[data-theme="dark"] body #sidebar#sidebar .drawer-avatar,html[data-theme="dark"] body #mainApp#mainApp#mainApp .settings-profile-avatar{background:#2C2C2E;color:#F5F5F7}
+html body #mainApp#mainApp .sidebar .bookuna-wordmark>span{color:#3DDC84!important}
+/* Selected and active states: grey with an ink edge instead of pale green. Keyboard focus rings are ink. */
+html body #modalRoot#modalRoot#modalRoot .quick-action-modal .quick-tiles>.quick-action.quick-tile{background:#F5F5F7!important}
+html[data-theme="dark"] body #modalRoot#modalRoot#modalRoot .quick-action-modal .quick-tiles>.quick-action.quick-tile{background:#1C1C1E!important}
+html body #mainApp#mainApp .settings-center .settings-center-row[aria-current="true"]{background:#F0F0F2!important}
+html[data-theme="dark"] body #mainApp#mainApp .settings-center .settings-center-row[aria-current="true"]{background:#2C2C2E!important}
+html body #modalRoot#modalRoot .mobile-invoice-choice.is-selected,html body #mainApp#mainApp .mobile-invoice-choice.is-selected{border-color:#0A0A0A!important;background:#F5F5F7!important}
+html[data-theme="dark"] body :is(#mainApp#mainApp,#modalRoot#modalRoot) .mobile-invoice-choice.is-selected{border-color:#F5F5F7!important;background:#1C1C1E!important}
+html body :is(#mainApp,#modalRoot,#sidebar) :focus-visible{outline-color:#0A0A0A!important}
+html[data-theme="dark"] body :is(#mainApp,#modalRoot,#sidebar) :focus-visible{outline-color:#F5F5F7!important}

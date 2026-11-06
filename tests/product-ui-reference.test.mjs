@@ -230,8 +230,8 @@ try{
       assert.equal(semanticColours.warning.color,'rgb(180, 83, 9)',browserName+' warning must use amber');
       assert.equal(semanticColours.error.color,'rgb(194, 54, 43)',browserName+' error must use red');
       assert.equal(semanticColours.info.color,'rgb(37, 99, 235)',browserName+' info must use blue');
-      assert.equal(semanticColours.primary.background,'rgb(99, 212, 113)',browserName+' primary action must use BOEKUNA green');
-      assert.equal(semanticColours.primary.color,'rgb(27, 31, 35)',browserName+' green primary action must use accessible anthracite text');
+      assert.equal(semanticColours.primary.background,'rgb(10, 10, 10)',browserName+' primary action must use huisstijl D ink');
+      assert.equal(semanticColours.primary.color,'rgb(255, 255, 255)',browserName+' ink primary action must use white text');
       const dashboardLabels=await page.locator('.dashboard-kpi-label').allTextContents();
       assert.deepEqual(dashboardLabels.filter((_,i)=>i!==3),['Winst','Omzet','Kosten','Nog te ontvangen']);
       assert.match(dashboardLabels[3],/^Btw (apartzetten|Q[1-4] (apartzetten|betalen|terug))$/);
