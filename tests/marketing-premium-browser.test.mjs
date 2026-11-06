@@ -38,7 +38,7 @@ try{
           const root=getComputedStyle(document.documentElement);
           return ['--ink','--green','--soft','--brand-muted','--paper'].map(k=>root.getPropertyValue(k).trim());
         });
-        assert.deepEqual(palette,['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF']);
+        assert.deepEqual(palette,['#0A0A0A','#3DDC84','#F5F5F7','#86868B','#FFFFFF']);
         if(width===390||width===1440){
           await page.addScriptTag({content:axeSource});
           const result=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));

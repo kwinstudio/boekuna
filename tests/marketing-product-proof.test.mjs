@@ -23,7 +23,7 @@ assert.equal((home.match(/<script\b(?! type="application\/ld\+json")/gi)||[]).le
 for(const token of ['editorial-hero','project-grid','editorial-pricing','product-marquee'])assert.equal(home.includes(token),false,'Old presentation returned: '+token);
 for(const old of ['assets/stories','assets/product','assets/marketing-people','assets/site.css','assets/site.js','assets/editorial-marketing.css','assets/premium-marketing.css','assets/onepage.css','assets/marketing.js','assets/landing-v4.css'])assert.equal(fs.existsSync(path.join(dist,old)),false,'Old public marketing asset returned: '+old);
 const css=fs.readFileSync(path.join(dist,'assets','baseline.css'),'utf8');
-for(const token of ['#1B1F23','#63D471','#F6F7F8','#8A949C','#FFFFFF'])assert.ok(css.includes(token),'Canonical BOEKUNA token missing '+token);
+for(const token of ['#0A0A0A','#3DDC84','#F5F5F7','#86868B','#FFFFFF'])assert.ok(css.includes(token),'Canonical BOEKUNA token missing '+token);
 assert.equal(css.includes('#E7FE55'),false,'Retired lime token returned');
 assert.equal(css.includes('#BFE7EC'),false,'Retired cyan token returned');
 console.log('Marketing asset QA: PASS (canonical palette, no old site runtime)');
