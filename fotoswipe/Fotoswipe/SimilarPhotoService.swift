@@ -253,7 +253,7 @@ struct SimilarPhotoGroup: Identifiable {
         var descriptors: [String: SimilarPhotoDescriptor] = [:]
     }
     private var cache: Cache?
-    private static var cacheURL: URL {
+    nonisolated private static var cacheURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Fotoswipe", isDirectory: true).appendingPathComponent("smart-scan.json")
     }
