@@ -85,16 +85,15 @@ Elke toetsaanslag wordt direct lokaal bewaard (AsyncStorage) en na ~1,2 s naar S
 
 Workflow: `.github/workflows/denknote-ios.yml` (cloud-Mac, zelfde route als Quitte).
 
-- Elke push naar `claude/denknote` → tests, typecheck, geheimencontrole van de bundel, `expo prebuild` en een **simulator-build** (geen signing, geen upload).
-- Uploaden naar TestFlight gebeurt **alleen** met `[denknote-testflight]` in het commitbericht of handmatig (`upload=true`). De build gaat naar de interne groep “Kwin test”, nooit naar App Review.
+- Een push naar `claude/denknote` start de workflow als die bestanden onder `denknote/` of het workflowbestand wijzigt. Zonder upload voert CI tests, typecheck, geheimencontrole, `expo prebuild` en een simulator-build uit.
+- Uploaden naar TestFlight gebeurt **alleen** met `[denknote-testflight]` in het commitbericht bij een push die aan het padenfilter voldoet. Handmatig starten met `upload=true` vereist dat de workflow ook op de standaardbranch staat. De build gaat naar de interne groep “Kwin test”, nooit naar App Review.
 
-Bundle ID: `nl.zichtwerf.denknote`.
+Bundle ID: `nl.zichtwerf.denknote`. In Supabase-project `kwinest` staat `denknote://auth-callback` bij de toegestane redirects voor authenticatie.
 
 ### Openstaande stappen (handwerk)
 
 1. **App-record in App Store Connect aanmaken** (Apps → + → bundle ID `nl.zichtwerf.denknote`, naam DenkNote). Dit kan alleen via de website. De bundle ID wordt bij de eerste upload-run geregistreerd.
-2. **Redirect-URL toevoegen** in Supabase → Authentication → URL Configuration: `denknote://auth-callback`. Zonder dit stuurt de bevestigingsmail naar de standaard Site URL van kwinest.
-3. **Accountverwijdering voor de App Store**: de app verwijdert alle DenkNote-gegevens, maar niet het (gedeelde) Supabase-account. Voor publicatie in de App Store moet volledige accountverwijdering erbij (Apple-richtlijn 5.1.1(v)); voor interne TestFlight is dit geen blokkade.
+2. **Accountverwijdering voor de App Store**: de app verwijdert alle DenkNote-gegevens, maar niet het (gedeelde) Supabase-account. Voor publicatie in de App Store moet volledige accountverwijdering erbij (Apple-richtlijn 5.1.1(v)); voor interne TestFlight is dit geen blokkade.
 
 ## Buiten scope (MVP)
 
