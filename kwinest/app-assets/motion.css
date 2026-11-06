@@ -154,3 +154,5 @@ html.boekuna-motion :is(.metric-value,.dashboard-summary-value){font-variant-num
 @supports (-webkit-touch-callout:none){
   html.boekuna-motion #content :is(.mobile-card-list>.mobile-card-row,:is(.mobile-invoices,.mobile-expenses,.mobile-bank,.mobile-documents)>tbody>tr){content-visibility:visible}
 }
+/* Volledige check 2026-11-06: in the phone band the amount has no card around it, so the chip sat on the cents. There it floats above the amount. */
+.motion-delta-host:not(.card)>.motion-delta{bottom:auto;top:-20px;right:-4px}
