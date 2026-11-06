@@ -979,3 +979,18 @@ main .section.dark .eyebrow::before,main .cta-band .eyebrow::before{background:v
 @media (max-width:640px){.s-bon{width:44vw;margin-left:0}.s-bon figcaption{text-align:left}}
 .footer-cta-sub{margin:10px 0 0;font-size:17px;line-height:1.5;color:rgba(255,255,255,.75);max-width:34ch}
 @media (prefers-reduced-motion:reduce){.sticky-cta{transition:none}.btn:active,.pill:active>span{transform:none}.s-bon-mark{opacity:1;animation:none!important}}
+
+/* Huisstijl D (Kwin 2026-11-06, "Zwart, wit en één punt"): the main button is black; filled green blocks become black
+   with white text, so green stays a dot or a thin line. */
+.mobile-nav-footer a.btn-primary{border-color:var(--ink);color:#fff}
+.tour-tabs button[aria-selected=true] .tour-num,.interval-toggle button[aria-checked=true] .interval-badge,.timeline-num,.pill-green>span{background:var(--ink);color:#fff}
+.studio .pricing-flag{background:#fff;color:var(--ink)}
+.section.dark .timeline-num,.dark .tour-tabs button[aria-selected=true] .tour-num{background:#fff;color:var(--ink)}
+.studio .pricing-featured li .icon{background:rgba(255,255,255,.14);color:#fff}
+.s-bon-mark{border-color:var(--ink);background:rgba(10,10,10,.06)}
+/* The soft moving light behind page heads: greys instead of pastels. */
+.s-flux-bg i:nth-child(1){background:radial-gradient(circle at 40% 40%,#E3E3E8,rgba(227,227,232,0) 70%)}
+.s-flux-bg i:nth-child(2){background:radial-gradient(circle at 50% 50%,#E9E9EE,rgba(233,233,238,0) 68%)}
+.s-flux-bg i:nth-child(3){background:radial-gradient(circle at 50% 50%,#EDEDF1,rgba(237,237,241,0) 66%)}
+.s-flux-bg i:nth-child(4){background:radial-gradient(circle at 50% 50%,#E6E6EB,rgba(230,230,235,0) 68%)}
+.s-flux-scrim::after{background:radial-gradient(circle,rgba(10,10,10,.04),rgba(10,10,10,0) 62%)}
