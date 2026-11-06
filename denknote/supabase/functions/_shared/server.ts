@@ -107,15 +107,22 @@ export async function allowRelated(userId: string): Promise<boolean> {
   return data?.allow_related === true;
 }
 
-// ── OpenAI ──────────────────────────────────────────────────────────────────
+// ── OpenAI (direct) of Vercel AI Gateway, net als Boekuna in hetzelfde project ──
 const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
-const RESPONSES_URL = Deno.env.get('OPENAI_RESPONSES_URL') ?? 'https://api.openai.com/v1/responses';
-const EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
-export const MODEL = Deno.env.get('DENKNOTE_MODEL') ?? 'gpt-5.6-sol';
-export const EMBEDDING_MODEL = 'text-embedding-3-small';
+const GATEWAY_KEY = Deno.env.get('AI_GATEWAY_API_KEY') ?? '';
+const DIRECT = OPENAI_KEY.length > 0;
+const API_KEY = DIRECT ? OPENAI_KEY : GATEWAY_KEY;
+const RESPONSES_URL = DIRECT
+  ? (Deno.env.get('OPENAI_RESPONSES_URL') ?? 'https://api.openai.com/v1/responses')
+  : 'https://ai-gateway.vercel.sh/v1/responses';
+const EMBEDDINGS_URL = DIRECT ? 'https://api.openai.com/v1/embeddings' : 'https://ai-gateway.vercel.sh/v1/embeddings';
+const BASE_MODEL = Deno.env.get('DENKNOTE_MODEL') ?? 'gpt-5.6-sol';
+export const MODEL = DIRECT ? BASE_MODEL : `openai/${BASE_MODEL}`;
+export const EMBEDDING_MODEL = DIRECT ? 'text-embedding-3-small' : 'openai/text-embedding-3-small';
+export const AI_PROVIDER = DIRECT ? 'openai' : GATEWAY_KEY ? 'vercel_ai_gateway' : 'none';
 
 export function aiConfigured(): boolean {
-  return OPENAI_KEY.length > 0;
+  return API_KEY.length > 0;
 }
 
 export class AiError extends Error {
@@ -125,19 +132,19 @@ export class AiError extends Error {
 }
 
 async function openaiPost(url: string, payload: unknown, timeoutMs: number): Promise<unknown> {
-  if (!aiConfigured()) throw new AiError('ai_not_configured', 'OPENAI_API_KEY ontbreekt');
+  if (!aiConfigured()) throw new AiError('ai_not_configured', 'OPENAI_API_KEY / AI_GATEWAY_API_KEY ontbreekt');
   let lastErr = '';
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'content-type': 'application/json' },
+        headers: { Authorization: `Bearer ${API_KEY}`, 'content-type': 'application/json' },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(timeoutMs),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok) return body;
-      lastErr = `${res.status} ${(body as { error?: { code?: string } })?.error?.code ?? ''}`.trim();
+      lastErr = `${res.status} ${(body as { error?: { code?: string; type?: string } })?.error?.code ?? (body as { error?: { type?: string } })?.error?.type ?? ''}`.trim();
       // Alleen tijdelijke fouten opnieuw proberen.
       if (res.status !== 429 && res.status < 500) break;
     } catch (e) {
@@ -145,7 +152,7 @@ async function openaiPost(url: string, payload: unknown, timeoutMs: number): Pro
     }
     await new Promise((r) => setTimeout(r, 400 * 2 ** attempt));
   }
-  console.error('openai_failed', lastErr);
+  console.error('ai_failed', AI_PROVIDER, lastErr);
   throw new AiError('ai_unavailable', lastErr || 'unknown');
 }
 

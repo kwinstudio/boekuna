@@ -15,6 +15,7 @@ import {
 } from '../_shared/logic.ts';
 import {
   admin,
+  AI_PROVIDER,
   aiConfigured,
   allowRelated,
   authenticate,
@@ -48,7 +49,7 @@ async function latestSuggestion(userId: string, noteId: string) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (req.method === 'GET') return json({ ok: true, service: 'dn-analyze-note', ai_configured: aiConfigured(), model: MODEL });
+  if (req.method === 'GET') return json({ ok: true, service: 'dn-analyze-note', ai_configured: aiConfigured(), provider: AI_PROVIDER, model: MODEL });
   if (req.method !== 'POST') return fail('bad_request', 'Alleen POST.', 405);
 
   try {
