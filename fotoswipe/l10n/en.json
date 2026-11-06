@@ -552,5 +552,10 @@
  "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": "Fotoswipe didn't delete anything. Your selection is saved.",
  "De verwijdering is geannuleerd.": "The deletion was cancelled.",
  "Nieuw, rustiger ontwerp": "A new, calmer design",
- "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "A new icon and a calmer look. Swiping is smoother, and merging duplicate contacts is safer."
+ "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "A new icon and a calmer look. Swiping is smoother, and merging duplicate contacts is safer.",
+ "%lld van %lld foto's bekeken": "%1$lld of %2$lld photos checked",
+ "%lld van %lld foto's · alleen op je iPhone": "%1$lld of %2$lld photos · only on your iPhone",
+ "Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee.": "Photos from WhatsApp and other apps come first. You can start already; the lists keep growing.",
+ "Rommel in je hele bibliotheek": "Clutter across your whole library",
+ "Slim opruimen kijkt nu naar al je foto's, en naar WhatsApp en andere apps eerst.": "Smart Clean now checks all your photos, starting with WhatsApp and other apps."
 }

@@ -218,6 +218,8 @@ struct PhotoCategory: Identifiable {
             let candidates = all.filter { !decided.contains($0.localIdentifier) }
                 .sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
             let favorites = Set(candidates.prefix(limit * 2).filter { overrides[$0.localIdentifier] ?? $0.isFavorite }.map(\.localIdentifier))
+            // WhatsApp, Telegram and other app albums are full of clutter: scan those first.
+            let priority = PhotoLibrary.appAlbumAssetIDs()
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.scanPreparing = false
@@ -226,7 +228,8 @@ struct PhotoCategory: Identifiable {
                     self.updateSmartSummary()
                     if self.selectedCategory.id == "clutter" || self.selectedCategory.id == "accidental" { self.refresh(showLoading: false) }
                 }
-                self.smart.start(candidates, favorites: favorites)
+                self.smart.onProgress = { [weak self] in self?.updateSmartSummary() }
+                self.smart.start(candidates, favorites: favorites, priority: priority)
             }
         }
     }
@@ -447,7 +450,7 @@ struct PhotoCategory: Identifiable {
             .similar: smart.stacks.flatMap { $0 }, .copies: smart.copies.flatMap { $0 }
         ]
         let burstFrames = burstStacks.flatMap { $0 }
-        let scanFinished = smart.finished
+        let scanFinished = smart.ready
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let now = Date()
             let appIDs = PhotoLibrary.appAlbumAssetIDs()

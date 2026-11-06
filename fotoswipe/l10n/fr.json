@@ -561,5 +561,10 @@
  "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": "Fotoswipe n'a rien supprimé. Ta sélection est conservée.",
  "De verwijdering is geannuleerd.": "La suppression a été annulée.",
  "Nieuw, rustiger ontwerp": "Un design nouveau, plus apaisé",
- "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "Une nouvelle icône et un look plus apaisé. Le swipe est plus fluide et la fusion des contacts en double est plus sûre."
+ "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "Une nouvelle icône et un look plus apaisé. Le swipe est plus fluide et la fusion des contacts en double est plus sûre.",
+ "%lld van %lld foto's bekeken": "%1$lld photos sur %2$lld vérifiées",
+ "%lld van %lld foto's · alleen op je iPhone": "%1$lld photos sur %2$lld · uniquement sur ton iPhone",
+ "Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee.": "D'abord les photos de WhatsApp et d'autres apps. Tu peux déjà commencer ; les listes s'agrandissent.",
+ "Rommel in je hele bibliotheek": "Le fouillis de toute ta photothèque",
+ "Slim opruimen kijkt nu naar al je foto's, en naar WhatsApp en andere apps eerst.": "Nettoyage intelligent vérifie maintenant toutes tes photos, en commençant par WhatsApp et les autres apps."
 }

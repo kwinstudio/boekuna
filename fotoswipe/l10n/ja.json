@@ -471,5 +471,10 @@
  "Er is niets door Fotoswipe verwijderd. Je selectie is bewaard.": "Fotoswipeは何も削除していません。選択内容は保存されています。",
  "De verwijdering is geannuleerd.": "削除はキャンセルされました。",
  "Nieuw, rustiger ontwerp": "落ち着いた新デザイン",
- "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "新しいアイコンと落ち着いたデザイン。スワイプがよりなめらかになり、重複した連絡先もより安全に結合できます。"
+ "Een nieuw icoon en een rustigere vormgeving. Swipen gaat soepeler en dubbele contacten voeg je veiliger samen.": "新しいアイコンと落ち着いたデザイン。スワイプがよりなめらかになり、重複した連絡先もより安全に結合できます。",
+ "%lld van %lld foto's bekeken": "%2$lld枚中%1$lld枚を確認",
+ "%lld van %lld foto's · alleen op je iPhone": "%2$lld枚中%1$lld枚・iPhone内だけで処理",
+ "Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee.": "WhatsAppなどのアプリの写真から先に確認します。もう始められます。リストは順次増えていきます。",
+ "Rommel in je hele bibliotheek": "ライブラリ全体の不要な写真",
+ "Slim opruimen kijkt nu naar al je foto's, en naar WhatsApp en andere apps eerst.": "スマート整理がすべての写真を確認するようになりました。WhatsAppなどのアプリの写真から先に確認します。"
 }

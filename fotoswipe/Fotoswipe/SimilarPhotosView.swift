@@ -170,7 +170,7 @@ struct StackReviewView: View {
     @State private var review = false
 
     private var loadingGroup: Bool {
-        group == .bursts ? !library.burstsLoaded : (library.smart.scanning || !library.smart.finished)
+        group == .bursts ? !library.burstsLoaded : !library.smart.ready
     }
     private var stacks: [[PHAsset]] {
         library.stacks(for: group)
@@ -225,7 +225,7 @@ struct StackReviewView: View {
                 ProgressView().tint(Palette.brand)
             } else {
                 ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
-                Text("\(library.smart.processed) van \(library.smart.total) recente foto's bekeken")
+                Text("\(library.smart.processed) van \(library.smart.total) foto's bekeken")
                     .font(.subheadline.weight(.semibold)).monospacedDigit()
             }
             Text("Dit gebeurt alleen op je iPhone, met kleine voorbeelden. Er wordt niets geüpload of verwijderd.")
@@ -410,6 +410,8 @@ struct SmartCleanView: View {
                             Text("Foto's analyseren…").font(.subheadline.weight(.semibold))
                             ProgressView(value: Double(library.smart.processed), total: Double(max(1, library.smart.total))).tint(Palette.brand)
                             Text("\(library.smart.processed) van \(library.smart.total)").font(.caption).foregroundStyle(Palette.muted).monospacedDigit()
+                            Text("Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee.")
+                                .font(.caption).foregroundStyle(Palette.muted).fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(12).pop(radius: 14, fill: Palette.surface, shadow: 2)
                     } else if totalBytes > 0 {
@@ -418,7 +420,7 @@ struct SmartCleanView: View {
                     }
                     ForEach(ordered) { group in
                         let entry = library.smartSummary[group]
-                        let pendingScan = group.needsScan && !library.smart.finished
+                        let pendingScan = group.needsScan && !library.smart.ready
                         let pendingBursts = group == .bursts && !library.burstsLoaded
                         let empty = !(pendingScan || pendingBursts) && (entry?.count ?? 0) == 0
                         Button { open(group) } label: { card(group, entry: entry, waiting: pendingScan || pendingBursts, empty: empty) }

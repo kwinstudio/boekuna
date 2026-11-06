@@ -214,12 +214,16 @@ struct SimilarPhotoGroup: Identifiable {
 }
 
 
-/// One on-device pass over recent, undecided photos: finds near-duplicate stacks and likely clutter.
+/// On-device pass over all undecided photos: finds near-duplicate stacks and likely clutter.
 /// Uses small local thumbnails only (no iCloud download, nothing stored or uploaded).
+/// Photos from WhatsApp and other app albums go first; results appear while the scan runs.
 @MainActor final class SmartScanner: ObservableObject {
-    static let limit = 1200
+    /// Practically the whole library; the cache makes every later scan incremental.
+    static let limit = 250_000
     @Published private(set) var scanning = false
     @Published private(set) var finished = false
+    /// Results can be used: the scan is done, or part-way results (or earlier ones) are there.
+    var ready: Bool { finished || !quality.isEmpty }
     @Published private(set) var processed = 0
     @Published private(set) var total = 0
     @Published private(set) var stacks: [[String]] = []
@@ -229,6 +233,8 @@ struct SimilarPhotoGroup: Identifiable {
     private(set) var reasons: [String: ClutterReason] = [:]
     private(set) var quality: [String: PhotoQuality] = [:]
     var onFinish: (() -> Void)?
+    /// Called when part-way results are published, so the hub's counts can update during a long scan.
+    var onProgress: (() -> Void)?
     private var task: Task<Void, Never>?
 
     private struct Input {
@@ -246,20 +252,63 @@ struct SimilarPhotoGroup: Identifiable {
         var quality: [String: PhotoQuality] = [:]
         var descriptors: [String: SimilarPhotoDescriptor] = [:]
     }
-    private var cache = Cache()
+    private var cache: Cache?
     private static var cacheURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Fotoswipe", isDirectory: true).appendingPathComponent("smart-scan.json")
     }
 
-    init() {
-        if let data = try? Data(contentsOf: Self.cacheURL), let saved = try? JSONDecoder().decode(Cache.self, from: data) {
-            cache = saved
-        }
+    /// The cache is read on the scan's background task, never at launch on the main thread.
+    nonisolated private static func loadCache() -> Cache {
+        guard let data = try? Data(contentsOf: cacheURL), let saved = try? JSONDecoder().decode(Cache.self, from: data) else { return Cache() }
+        return saved
     }
 
-    /// `assets` should be ordered newest first; only the first `limit` photos are considered.
-    func start(_ assets: [PHAsset], favorites: Set<String>) {
+    private struct Results {
+        var reasons: [String: ClutterReason] = [:]
+        var stacks: [[String]] = []
+        var clutter: [String] = []
+        var accidental: [String] = []
+        var copies: [[String]] = []
+    }
+    nonisolated private static func results(_ list: [Input], quality: [String: PhotoQuality],
+                                            descriptors descriptorByID: [String: SimilarPhotoDescriptor],
+                                            isCancelled: () -> Bool) -> Results {
+        var out = Results()
+        for input in list {
+            if let reason = ClutterReason.classify(isScreenshot: input.screenshot, isFavorite: input.favorite, quality: quality[input.id]) {
+                out.reasons[input.id] = reason
+            }
+        }
+        let descriptors = list.compactMap { descriptorByID[$0.id] }
+        let groups = SimilarPhotoGrouping.groups(descriptors, isCancelled: isCancelled)
+        let order = list.map(\.id)
+        let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        // Newest stacks first; clutter grouped by reason, newest first within a reason.
+        out.stacks = groups.sorted { (rank[$0.first ?? ""] ?? 0) < (rank[$1.first ?? ""] ?? 0) }
+        out.copies = SimilarPhotoGrouping.exactCopies(descriptors)
+        let reasons = out.reasons
+        out.accidental = order.filter { reasons[$0] == .accidental }
+        out.clutter = order.filter { reasons[$0] != nil && reasons[$0] != .accidental }
+            .enumerated()
+            .sorted { lhs, rhs in
+                let l = reasons[lhs.element]!, r = reasons[rhs.element]!
+                return l == r ? lhs.offset < rhs.offset : l < r
+            }
+            .map(\.element)
+        return out
+    }
+    private func apply(_ results: Results, quality: [String: PhotoQuality]) {
+        self.quality = quality
+        reasons = results.reasons
+        stacks = results.stacks
+        clutter = results.clutter
+        accidental = results.accidental
+        copies = results.copies
+    }
+
+    /// `assets` should be ordered newest first. `priority` (photos in WhatsApp and other app albums) is scanned first.
+    func start(_ assets: [PHAsset], favorites: Set<String>, priority: Set<String> = []) {
         guard !scanning else { return }
         task?.cancel()
         let inputs = assets.lazy.filter { $0.mediaType == .image }.prefix(Self.limit).map { asset in
@@ -269,11 +318,21 @@ struct SimilarPhotoGroup: Identifiable {
                   favorite: favorites.contains(asset.localIdentifier))
         }
         let list = Array(inputs)
-        let known = cache
-        let toScan = list.filter { known.quality[$0.id] == nil }
-        scanning = true; finished = false; processed = 0; total = toScan.count
+        let loaded = cache
+        scanning = true; finished = false; processed = 0
         let url = Self.cacheURL
         task = Task.detached(priority: .utility) { [weak self] in
+            let known = loaded ?? SmartScanner.loadCache()
+            let pending = list.filter { known.quality[$0.id] == nil }
+            let toScan = pending.filter { priority.contains($0.id) } + pending.filter { !priority.contains($0.id) }
+            let count = toScan.count
+            await MainActor.run { self?.total = count }
+            // What is already known shows at once.
+            if !known.quality.isEmpty {
+                let early = SmartScanner.results(list, quality: known.quality, descriptors: known.descriptors, isCancelled: { Task.isCancelled })
+                await MainActor.run { self?.apply(early, quality: known.quality) }
+            }
+            var lastUpdate = Date()
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
             options.isSynchronous = true
@@ -299,34 +358,20 @@ struct SimilarPhotoGroup: Identifiable {
                     let done = index + 1
                     await MainActor.run { self?.processed = done }
                 }
-                // Checkpoint, so a scan that is stopped halfway does not start from zero next time.
-                if index % 200 == 199, let data = try? JSONEncoder().encode(Cache(quality: quality, descriptors: descriptorByID)) {
-                    try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                    try? data.write(to: url, options: .atomic)
+                // Every 45 seconds: save progress (a stopped scan never starts from zero) and show what was found so far.
+                if Date().timeIntervalSince(lastUpdate) > 45 && index < toScan.count - 1 {
+                    lastUpdate = Date()
+                    if let data = try? JSONEncoder().encode(Cache(quality: quality, descriptors: descriptorByID)) {
+                        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try? data.write(to: url, options: .atomic)
+                    }
+                    let partial = SmartScanner.results(list, quality: quality, descriptors: descriptorByID, isCancelled: { Task.isCancelled })
+                    let snapshot = quality
+                    await MainActor.run { self?.apply(partial, quality: snapshot); self?.onProgress?() }
                 }
             }
-            var reasons: [String: ClutterReason] = [:]
-            for input in list {
-                if let reason = ClutterReason.classify(isScreenshot: input.screenshot, isFavorite: input.favorite, quality: quality[input.id]) {
-                    reasons[input.id] = reason
-                }
-            }
+            let final = SmartScanner.results(list, quality: quality, descriptors: descriptorByID, isCancelled: { Task.isCancelled })
             let ids = Set(list.map(\.id))
-            let descriptors = list.compactMap { descriptorByID[$0.id] }
-            let groups = SimilarPhotoGrouping.groups(descriptors, isCancelled: { Task.isCancelled })
-            let order = list.map(\.id)
-            let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
-            // Newest stacks first; clutter grouped by reason, newest first within a reason.
-            let sortedStacks = groups.sorted { (rank[$0.first ?? ""] ?? 0) < (rank[$1.first ?? ""] ?? 0) }
-            let copyGroups = SimilarPhotoGrouping.exactCopies(descriptors)
-            let accidentalIDs = order.filter { reasons[$0] == .accidental }
-            let clutterIDs = order.filter { reasons[$0] != nil && reasons[$0] != .accidental }
-                .enumerated()
-                .sorted { lhs, rhs in
-                    let l = reasons[lhs.element]!, r = reasons[rhs.element]!
-                    return l == r ? lhs.offset < rhs.offset : l < r
-                }
-                .map(\.element)
             // Keep the cache small: only photos that are still candidates.
             let saved = Cache(quality: quality.filter { ids.contains($0.key) }, descriptors: descriptorByID.filter { ids.contains($0.key) })
             if let data = try? JSONEncoder().encode(saved) {
@@ -336,13 +381,8 @@ struct SimilarPhotoGroup: Identifiable {
             await MainActor.run {
                 guard let self else { return }
                 self.cache = saved
-                self.quality = saved.quality
-                self.reasons = reasons
-                self.stacks = sortedStacks
-                self.clutter = clutterIDs
-                self.accidental = accidentalIDs
-                self.copies = copyGroups
-                self.processed = toScan.count
+                self.apply(final, quality: saved.quality)
+                self.processed = count
                 self.scanning = false
                 self.finished = true
                 self.task = nil

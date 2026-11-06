@@ -2167,6 +2167,88 @@
         }
       }
     },
+    "%lld van %lld foto's bekeken": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld photos checked"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld van %lld foto's bekeken"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld fotos revisadas"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld von %2$lld Fotos geprüft"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld photos sur %2$lld vérifiées"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld枚中%1$lld枚を確認"
+          }
+        }
+      }
+    },
+    "%lld van %lld foto's · alleen op je iPhone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld photos · only on your iPhone"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld van %lld foto's · alleen op je iPhone"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld fotos · solo en tu iPhone"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld von %2$lld Fotos · nur auf deinem iPhone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld photos sur %2$lld · uniquement sur ton iPhone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld枚中%1$lld枚・iPhone内だけで処理"
+          }
+        }
+      }
+    },
     "%lld van %lld items": {
       "extractionState": "manual",
       "localizations": {
@@ -7468,6 +7550,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "写真を分析中…"
+          }
+        }
+      }
+    },
+    "Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos from WhatsApp and other apps come first. You can start already; the lists keep growing."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto's uit WhatsApp en andere apps eerst. Je kunt al beginnen; de lijsten groeien mee."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero las fotos de WhatsApp y otras apps. Ya puedes empezar; las listas siguen creciendo."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos aus WhatsApp und anderen Apps zuerst. Du kannst schon loslegen; die Listen wachsen mit."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "D'abord les photos de WhatsApp et d'autres apps. Tu peux déjà commencer ; les listes s'agrandissent."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsAppなどのアプリの写真から先に確認します。もう始められます。リストは順次増えていきます。"
           }
         }
       }
@@ -14986,6 +15109,47 @@
         }
       }
     },
+    "Rommel in je hele bibliotheek": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clutter across your whole library"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rommel in je hele bibliotheek"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desorden en toda tu fototeca"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kram in deiner ganzen Mediathek"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fouillis de toute ta photothèque"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブラリ全体の不要な写真"
+          }
+        }
+      }
+    },
     "Rommel zoeken": {
       "extractionState": "manual",
       "localizations": {
@@ -15638,6 +15802,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "スマート整理"
+          }
+        }
+      }
+    },
+    "Slim opruimen kijkt nu naar al je foto's, en naar WhatsApp en andere apps eerst.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart Clean now checks all your photos, starting with WhatsApp and other apps."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slim opruimen kijkt nu naar al je foto's, en naar WhatsApp en andere apps eerst."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limpieza inteligente revisa ahora todas tus fotos, empezando por WhatsApp y otras apps."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart aufräumen prüft jetzt alle deine Fotos, zuerst die aus WhatsApp und anderen Apps."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nettoyage intelligent vérifie maintenant toutes tes photos, en commençant par WhatsApp et les autres apps."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スマート整理がすべての写真を確認するようになりました。WhatsAppなどのアプリの写真から先に確認します。"
           }
         }
       }
