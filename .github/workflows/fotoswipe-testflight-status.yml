@@ -41,16 +41,16 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '12' }}
+          TARGET_BUILD: ${{ inputs.target_build || '13' }}
           WAIT_MINUTES: "40"
-          WHAT_TO_TEST: "Nieuw in build 12: een nieuw icoon en een rustiger, strakker ontwerp (geen dikke randen meer). Daarnaast veel verbeteringen onder de motorkap: dubbele contacten worden veiliger samengevoegd (niets is vooraf aangevinkt, en alle gegevens zoals datums en relaties gaan mee), swipen is soepeler, willekeurige volgorde blijft gelijk, de widget wordt na elke sessie bijgewerkt. Test vooral: het nieuwe uiterlijk, swipen, Slim opruimen en de widget."
+          WHAT_TO_TEST: "Nieuw in build 13: Slim opruimen kijkt nu naar je hele fotobibliotheek in plaats van alleen de nieuwste 1200 foto's, en foto's uit WhatsApp en andere apps worden eerst bekeken. Je ziet al resultaten terwijl de scan nog loopt. Test vooral: Slim opruimen > Rommel en Per ongeluk, en of de app soepel blijft tijdens het scannen."
         run: node fotoswipe/scripts/asc-testflight-status.mjs
       - name: Public TestFlight link for friends
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          TARGET_BUILD: ${{ inputs.target_build || '12' }}
+          TARGET_BUILD: ${{ inputs.target_build || '13' }}
           CONTACT_FIRST: ${{ inputs.contact_first }}
           CONTACT_LAST: ${{ inputs.contact_last }}
           CONTACT_PHONE: ${{ inputs.contact_phone }}
