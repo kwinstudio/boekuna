@@ -1,0 +1,84 @@
+name: Fotoswipe TestFlight
+on:
+  push:
+    branches: [codex/fotoswipe-release-20261028]
+permissions:
+  contents: read
+concurrency:
+  group: fotoswipe-testflight
+  cancel-in-progress: false
+jobs:
+  test-and-upload:
+    if: github.repository == 'kwinstudio/boekuna'
+    runs-on: macos-26
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: fotoswipe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate project and test on iPhone simulator
+        run: |
+          xcodebuild -version
+          python3 scripts/validate_project.py
+          bash scripts/test.sh
+      - name: Check existing Apple app and signing access
+        id: asc
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_OUT: ${{ runner.temp }}/FotoswipeAuthKey.p8
+        run: node scripts/asc.mjs
+      - name: Archive Fotoswipe for iPhone
+        run: |
+          xcodebuild -project Fotoswipe.xcodeproj -scheme Fotoswipe \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/Fotoswipe.xcarchive \
+            CURRENT_PROJECT_VERSION=${{ steps.asc.outputs.next_build }} \
+            DEVELOPMENT_TEAM=${{ steps.asc.outputs.team_id }} CODE_SIGNING_ALLOWED=NO archive
+          PLIST=build/Fotoswipe.xcarchive/Products/Applications/Fotoswipe.app/Info.plist
+          BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST")
+          [[ "$BUNDLE" == 'nl.zichtwerfstudio.fotoswipe' ]] || { echo 'Wrong application bundle'; exit 1; }
+      - name: Sign and export Fotoswipe IPA
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          for KIND in IPA TestFlight; do
+            cp "ExportOptions-$KIND.plist" "$RUNNER_TEMP/Fotoswipe-ExportOptions-$KIND.plist"
+            /usr/libexec/PlistBuddy -c 'Add :teamID string ${{ steps.asc.outputs.team_id }}' "$RUNNER_TEMP/Fotoswipe-ExportOptions-$KIND.plist"
+          done
+          xcodebuild -exportArchive \
+            -archivePath build/Fotoswipe.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/Fotoswipe-ExportOptions-IPA.plist" \
+            -exportPath build/export -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/FotoswipeAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          mkdir -p "$RUNNER_TEMP/fotoswipe-verify"
+          unzip -q build/export/Fotoswipe.ipa -d "$RUNNER_TEMP/fotoswipe-verify"
+          codesign --verify --strict --verbose=2 "$RUNNER_TEMP/fotoswipe-verify/Payload/Fotoswipe.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fotoswipe-signed-${{ steps.asc.outputs.next_build }}
+          path: fotoswipe/build/export/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/Fotoswipe.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/Fotoswipe-ExportOptions-TestFlight.plist" \
+            -exportPath build/upload -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/FotoswipeAuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo 'Fotoswipe uploaded to App Store Connect for TestFlight processing.'
+      - name: Remove ephemeral signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/FotoswipeAuthKey.p8"

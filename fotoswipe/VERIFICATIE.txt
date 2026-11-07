@@ -1,0 +1,17 @@
+Fotoswipe — verificatie 28 oktober 2026
+
+GESLAAGD
+- Xcode OpenStep-project volledig geparseerd; 43 objecten.
+- Alle interne projectverwijzingen bestaan.
+- Alle 7 Swift-bron- en testbestanden zijn opgenomen.
+- Resourceverwijzingen, gedeeld schema, Info.plist en privacymanifest gecontroleerd.
+- App-icoon: 1024 x 1024, RGB, geen transparantie.
+- Shellscripts gecontroleerd op syntaxis.
+
+NIET UITGEVOERD
+- Swift-compilatie en typecontrole.
+- De zes XCTest-tests.
+- Simulator- of fysieke iPhone-test.
+- Signing, archiveren en TestFlight-upload.
+
+Reden: deze omgeving heeft geen macOS, Swift of Xcode. build.sh is gestart en stopte met de expliciete melding dat Xcode op een Mac nodig is. Statische controles bewijzen niet dat de app compileert of op een iPhone werkt.
